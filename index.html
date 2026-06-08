@@ -769,9 +769,9 @@ function updateCountdown() {
   else if (days === 0)              poetic.textContent = 'just a few hours';
   else if (days === 1)              poetic.textContent = 'tomorrow';
   else if (days < 7)                poetic.textContent = 'less than a week';
-  else if (days < 14)               poetic.textContent = 'just a little while';
-  else if (days < 30)               poetic.textContent = 'soon';
-  else                              poetic.textContent = 'soon enough';
+  else if (days < 14)               poetic.textContent = '';
+  else if (days < 30)               poetic.textContent = '';
+  else                              poetic.textContent = '';
 }
 updateCountdown();
 setInterval(updateCountdown, 1000);
