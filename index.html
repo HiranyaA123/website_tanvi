@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>for you ♡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     EDIT THESE — your details
+     ============================================================ */
+  :root {
+    /* Palette: dusk over the Nullarbor */
+    --night:        #1a1129;
+    --night-2:      #251636;
+    --plum:         #3b2147;
+    --coral:        #f0846a;
+    --sunset:       #f4a261;
+    --rose:         #e76f51;
+    --cream:        #f4ede4;
+    --cream-dim:    #d9cfc1;
+    --sage:         #a8b89e;
+    --line:         rgba(244, 237, 228, 0.12);
+    --line-strong:  rgba(244, 237, 228, 0.25);
+
+    --serif: 'Fraunces', 'Times New Roman', serif;
+    --sans:  'Manrope', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--night);
+    color: var(--cream);
+    font-family: var(--sans);
+    line-height: 1.5;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* Grain overlay for warmth */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/></svg>");
+  }
+
+  /* ============================================================
+     NAVIGATION
+     ============================================================ */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 1.2rem 2.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(26, 17, 41, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav .brand {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.15rem;
+    color: var(--cream);
+    letter-spacing: 0.02em;
+  }
+  nav .brand span { color: var(--coral); }
+  nav ul {
+    display: flex;
+    gap: 2.2rem;
+    list-style: none;
+  }
+  nav ul a {
+    color: var(--cream-dim);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: color 0.3s ease;
+    position: relative;
+  }
+  nav ul a:hover { color: var(--coral); }
+  nav ul a::after {
+    content: '';
+    position: absolute;
+    left: 0; bottom: -4px;
+    width: 0; height: 1px;
+    background: var(--coral);
+    transition: width 0.3s ease;
+  }
+  nav ul a:hover::after { width: 100%; }
+
+  @media (max-width: 720px) {
+    nav { padding: 1rem 1.2rem; flex-direction: column; gap: 0.7rem; }
+    nav ul { gap: 1.2rem; flex-wrap: wrap; justify-content: center; }
+    nav ul a { font-size: 0.7rem; }
+  }
+
+  section {
+    min-height: 100vh;
+    padding: 8rem 2rem 6rem;
+    position: relative;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--sunset);
+    margin-bottom: 1rem;
+    display: block;
+  }
+  .section-title {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    letter-spacing: -0.02em;
+    color: var(--cream);
+    margin-bottom: 3rem;
+    line-height: 1.05;
+  }
+
+  /* ============================================================
+     COUNTDOWN HERO
+     ============================================================ */
+  #home {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background:
+      radial-gradient(ellipse at 20% 30%, rgba(240, 132, 106, 0.18), transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(244, 162, 97, 0.12), transparent 50%),
+      radial-gradient(ellipse at 50% 100%, rgba(231, 111, 81, 0.15), transparent 60%),
+      var(--night);
+    padding: 7rem 1.5rem 4rem;
+  }
+
+  /* Stars */
+  #stars {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  #stars span {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: var(--cream);
+    border-radius: 50%;
+    opacity: 0.6;
+    animation: twinkle 3s infinite ease-in-out;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50%      { opacity: 0.8; }
+  }
+
+  .hero-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--coral);
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 2;
+  }
+  .hero-title {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    line-height: 1;
+    color: var(--cream);
+    margin-bottom: 3.5rem;
+    position: relative;
+    z-index: 2;
+  }
+  .hero-title em {
+    color: var(--sunset);
+    font-style: italic;
+  }
+
+  .countdown {
+    display: flex;
+    gap: clamp(1rem, 4vw, 3rem);
+    margin-bottom: 3rem;
+    position: relative;
+    z-index: 2;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .cd-unit { text-align: center; min-width: 80px; }
+  .cd-num {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(3rem, 9vw, 6.5rem);
+    color: var(--cream);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(180deg, var(--cream) 0%, var(--sunset) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cd-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    margin-top: 0.5rem;
+  }
+
+  .flight-line {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem 0 1rem;
+    position: relative;
+    z-index: 2;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+  }
+  .flight-line .city {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--cream);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  .flight-line .dash {
+    width: 80px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--coral), transparent);
+    position: relative;
+  }
+  .flight-line .plane {
+    color: var(--coral);
+    font-size: 1.1rem;
+    animation: flying 6s infinite ease-in-out;
+  }
+  @keyframes flying {
+    0%, 100% { transform: translateX(-6px); }
+    50%      { transform: translateX(6px); }
+  }
+
+  .hero-meta {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--cream-dim);
+    font-style: italic;
+    font-family: var(--serif);
+    position: relative;
+    z-index: 2;
+  }
+  .hero-meta span { color: var(--coral); }
+
+  /* ============================================================
+     TIMELINE — polaroid scatter
+     ============================================================ */
+  #story {
+    background: var(--night-2);
+    padding-top: 7rem;
+    overflow: hidden; /* photos can stick out without causing scrollbars */
+  }
+  .story-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+  }
+  .timeline {
+    position: relative;
+    padding: 4rem 0;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, var(--line-strong) 8%, var(--line-strong) 92%, transparent);
+    transform: translateX(-0.5px);
+  }
+
+  .event {
+    position: relative;
+    width: 100%;
+    margin-bottom: 7rem;
+    min-height: 280px;
+  }
+  .event:last-child { margin-bottom: 2rem; }
+
+  .event-card {
+    width: 44%;
+    background: linear-gradient(145deg, rgba(244, 237, 228, 0.05), rgba(240, 132, 106, 0.04));
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1.8rem;
+    position: relative;
+    transition: transform 0.4s ease, border-color 0.4s ease;
+    backdrop-filter: blur(2px);
+    z-index: 3;
+  }
+  .event:nth-child(odd)  .event-card { margin-left: 0; margin-right: auto; }
+  .event:nth-child(even) .event-card { margin-left: auto; margin-right: 0; }
+
+  .event-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--coral);
+  }
+  .event-card .date {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--coral);
+    margin-bottom: 0.5rem;
+  }
+  .event-card h3 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-style: italic;
+    font-size: 1.7rem;
+    color: var(--cream);
+    margin-bottom: 0.7rem;
+    line-height: 1.15;
+  }
+  .event-card p {
+    font-size: 0.95rem;
+    color: var(--cream-dim);
+    line-height: 1.65;
+  }
+  .event::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 2rem;
+    width: 14px; height: 14px;
+    background: var(--coral);
+    border: 2px solid var(--night-2);
+    border-radius: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 0 0 4px rgba(240, 132, 106, 0.2);
+    z-index: 4;
+  }
+
+  /* Polaroid photo */
+  .polaroid {
+    position: absolute;
+    background: #f4ede4;
+    padding: 10px 10px 38px;
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.45),
+      0 2px 6px rgba(0, 0, 0, 0.3);
+    border-radius: 2px;
+    z-index: 2;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), z-index 0s 0.5s;
+  }
+  .polaroid:hover {
+    transform: rotate(0deg) scale(1.08) translateY(-6px) !important;
+    z-index: 5;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), z-index 0s 0s;
+  }
+  .polaroid img {
+    display: block;
+    width: 100%;
+    height: calc(100% - 28px);
+    object-fit: cover;
+    filter: saturate(0.92) contrast(0.95);
+  }
+  .polaroid .caption {
+    position: absolute;
+    bottom: 10px; left: 0; right: 0;
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.78rem;
+    color: #2a1f3a;
+    padding: 0 8px;
+  }
+  /* Washi tape corner */
+  .polaroid::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-3deg);
+    width: 50px; height: 18px;
+    background: rgba(240, 132, 106, 0.45);
+    border-left: 1px dashed rgba(231, 111, 81, 0.6);
+    border-right: 1px dashed rgba(231, 111, 81, 0.6);
+  }
+  .polaroid.tape-sage::before { background: rgba(168, 184, 158, 0.5); }
+  .polaroid.tape-sun::before  { background: rgba(244, 162, 97, 0.5); }
+
+  /* Per-event photo positions — one polaroid per event,
+     placed opposite the card with varied rotation/offset */
+  .event { --rot: 0deg; --y: 10px; }
+  .event:nth-child(1)  { --rot: -6deg; --y: -10px; }
+  .event:nth-child(2)  { --rot:  5deg; --y:  20px; }
+  .event:nth-child(3)  { --rot: -4deg; --y:  25px; }
+  .event:nth-child(4)  { --rot:  7deg; --y:  -5px; }
+  .event:nth-child(5)  { --rot: -8deg; --y:  15px; }
+  .event:nth-child(6)  { --rot:  4deg; --y:  30px; }
+  .event:nth-child(7)  { --rot: -5deg; --y:   0px; }
+  .event:nth-child(8)  { --rot:  8deg; --y:  20px; }
+  .event:nth-child(9)  { --rot: -7deg; --y:  10px; }
+  .event:nth-child(10) { --rot:  5deg; --y: -10px; }
+
+  .event .polaroid {
+    width: 210px; height: 240px;
+    top: var(--y);
+    transform: rotate(var(--rot));
+  }
+  .event:nth-child(odd)  .polaroid { right: 5%; }
+  .event:nth-child(even) .polaroid { left:  5%; }
+
+  @media (max-width: 900px) {
+    .timeline::before { left: 16px; }
+    .event { min-height: auto; margin-bottom: 4rem; }
+    .event-card,
+    .event:nth-child(even) .event-card,
+    .event:nth-child(odd) .event-card {
+      width: calc(100% - 50px);
+      margin-left: 50px;
+      margin-right: 0;
+    }
+    .event::before { left: 16px; }
+    /* Photo flows below card, centered */
+    .event .polaroid {
+      position: relative !important;
+      top: auto !important;
+      left: auto !important; right: auto !important;
+      width: 200px !important; height: 230px !important;
+      margin: 1.5rem auto 0 !important;
+      transform: rotate(-3deg) !important;
+      display: block;
+    }
+  }
+
+  /* ============================================================
+     PHOTO GALLERY — masonry + lightbox
+     ============================================================ */
+  #photos {
+    background: var(--night);
+    padding-top: 7rem;
+    padding-bottom: 4rem;
+  }
+  .photos-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .photos-grid {
+    column-count: 3;
+    column-gap: 14px;
+    margin-top: 3rem;
+  }
+  .photos-grid img {
+    width: 100%;
+    display: block;
+    break-inside: avoid;
+    margin-bottom: 14px;
+    border-radius: 4px;
+    cursor: zoom-in;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), filter 0.4s ease, box-shadow 0.4s ease;
+    filter: saturate(0.92) brightness(0.92);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    animation: fadeUp 0.7s forwards;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .photos-grid img:hover {
+    transform: translateY(-4px) scale(1.01);
+    filter: saturate(1.05) brightness(1.02);
+    box-shadow: 0 12px 36px rgba(240, 132, 106, 0.18), 0 6px 24px rgba(0, 0, 0, 0.5);
+  }
+  @media (max-width: 900px) { .photos-grid { column-count: 2; } }
+  @media (max-width: 600px) { .photos-grid { column-count: 1; } }
+
+  .photos-empty {
+    margin-top: 3rem;
+    color: var(--cream-dim);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.1rem;
+  }
+
+  /* Lightbox */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 5, 20, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    cursor: zoom-out;
+    animation: lbFade 0.3s ease;
+  }
+  .lightbox.show { display: flex; }
+  @keyframes lbFade { from { opacity: 0; } to { opacity: 1; } }
+  .lightbox img {
+    max-width: 90vw;
+    max-height: 85vh;
+    object-fit: contain;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7);
+    border-radius: 4px;
+    cursor: default;
+  }
+  .lb-btn {
+    position: absolute;
+    background: rgba(244, 237, 228, 0.08);
+    border: 1px solid var(--line);
+    color: var(--cream);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    font-family: var(--serif);
+    backdrop-filter: blur(8px);
+  }
+  .lb-btn:hover {
+    background: var(--coral);
+    color: var(--night);
+    border-color: var(--coral);
+  }
+  .lb-arrow {
+    top: 50%;
+    transform: translateY(-50%);
+    width: 52px; height: 52px;
+    font-size: 1.8rem;
+  }
+  .lb-prev { left: 1.5rem; }
+  .lb-next { right: 1.5rem; }
+  .lb-close {
+    top: 1.5rem; right: 1.5rem;
+    width: 40px; height: 40px;
+    font-size: 1rem;
+  }
+  .lb-counter {
+    position: absolute;
+    bottom: 1.5rem; left: 50%;
+    transform: translateX(-50%);
+    color: var(--cream-dim);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+  }
+  @media (max-width: 600px) {
+    .lb-arrow { width: 40px; height: 40px; font-size: 1.4rem; }
+    .lb-prev  { left: 0.5rem; }
+    .lb-next  { right: 0.5rem; }
+  }
+
+  /* ============================================================
+     BUCKET LIST — single column, no checks
+     ============================================================ */
+  #bucket {
+    background: var(--night-2);
+    padding-top: 7rem;
+    padding-bottom: 6rem;
+  }
+  .bucket-wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .bucket-list {
+    margin-top: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--line);
+  }
+  .bucket-list .item {
+    padding: 1.6rem 1rem;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    color: var(--cream);
+    transition: color 0.3s ease, letter-spacing 0.3s ease;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+  }
+  .bucket-list .item::before {
+    content: '✦';
+    color: var(--coral);
+    font-size: 0.9rem;
+    font-style: normal;
+    transition: transform 0.4s ease, color 0.3s ease;
+  }
+  .bucket-list .item:hover {
+    color: var(--sunset);
+    letter-spacing: 0.02em;
+  }
+  .bucket-list .item:hover::before {
+    transform: rotate(180deg) scale(1.2);
+    color: var(--sunset);
+  }
+
+  /* ============================================================
+     FOOTER
+     ============================================================ */
+  footer {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: var(--night);
+    border-top: 1px solid var(--line);
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--cream-dim);
+    font-size: 0.95rem;
+  }
+  footer .heart { color: var(--coral); }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed;
+    width: 8px; height: 12px;
+    z-index: 9999;
+    pointer-events: none;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">for <span>you</span>, from me</div>
+  <ul>
+    <li><a href="#home">Home</a></li>
+    <li><a href="#story">Our Story</a></li>
+    <li><a href="#photos">Photos</a></li>
+    <li><a href="#bucket">Bucket List</a></li>
+  </ul>
+</nav>
+
+<!-- ===== HOME / COUNTDOWN ===== -->
+<section id="home">
+  <div id="stars"></div>
+
+  <div class="hero-eyebrow">until i'm home</div>
+  <h1 class="hero-title">i'll see you in<br><em id="hero-poetic">just a little while</em></h1>
+
+  <div class="countdown">
+    <div class="cd-unit"><div class="cd-num" id="d">00</div><div class="cd-label">Days</div></div>
+    <div class="cd-unit"><div class="cd-num" id="h">00</div><div class="cd-label">Hours</div></div>
+    <div class="cd-unit"><div class="cd-num" id="m">00</div><div class="cd-label">Minutes</div></div>
+    <div class="cd-unit"><div class="cd-num" id="s">00</div><div class="cd-label">Seconds</div></div>
+  </div>
+
+  <div class="flight-line">
+    <span class="city">Sydney</span>
+    <span class="dash"></span>
+    <span class="plane">✈</span>
+    <span class="dash"></span>
+    <span class="city">Adelaide</span>
+  </div>
+  <div class="hero-meta">
+    <span id="km">1,166</span> km between us right now
+    &nbsp;·&nbsp; you're <span id="tz-diff">30 min</span> behind me
+  </div>
+</section>
+
+<!-- ===== TIMELINE ===== -->
+<section id="story">
+  <div class="story-wrap">
+    <span class="section-label">Our Story</span>
+    <h2 class="section-title">all the small things,<br>strung together.</h2>
+
+    <div class="timeline" id="timeline"></div>
+  </div>
+</section>
+
+<!-- ===== PHOTO GALLERY ===== -->
+<section id="photos">
+  <div class="photos-wrap">
+    <span class="section-label">A few of you</span>
+    <h2 class="section-title">the highlights.</h2>
+    <div class="photos-grid" id="photos-grid"></div>
+  </div>
+</section>
+
+<!-- ===== LIGHTBOX (hidden by default) ===== -->
+<div class="lightbox" id="lightbox">
+  <button class="lb-btn lb-close" aria-label="Close">✕</button>
+  <button class="lb-btn lb-arrow lb-prev" aria-label="Previous">‹</button>
+  <img src="" alt="" />
+  <button class="lb-btn lb-arrow lb-next" aria-label="Next">›</button>
+  <div class="lb-counter"></div>
+</div>
+
+<!-- ===== BUCKET LIST ===== -->
+<section id="bucket">
+  <div class="bucket-wrap">
+    <h2 class="section-title">bucket list.</h2>
+    <div class="bucket-list" id="bucket-list"></div>
+  </div>
+</section>
+
+<footer>
+  made with <span class="heart">♡</span> from sydney
+</footer>
+
+<script>
+/* ============================================================
+   EDIT THIS — when you're getting back
+   ============================================================ */
+const RETURN_DATE = new Date('2026-07-04T18:00:00+09:30'); // 4 July, Adelaide time (+09:30 winter)
+
+/* ============================================================
+   COUNTDOWN
+   ============================================================ */
+function pad(n) { return String(n).padStart(2, '0'); }
+function updateCountdown() {
+  const now = new Date();
+  let diff = Math.max(0, RETURN_DATE - now);
+  const days  = Math.floor(diff / 86400000); diff -= days * 86400000;
+  const hours = Math.floor(diff / 3600000);  diff -= hours * 3600000;
+  const mins  = Math.floor(diff / 60000);    diff -= mins * 60000;
+  const secs  = Math.floor(diff / 1000);
+  document.getElementById('d').textContent = pad(days);
+  document.getElementById('h').textContent = pad(hours);
+  document.getElementById('m').textContent = pad(mins);
+  document.getElementById('s').textContent = pad(secs);
+
+  // Poetic line changes with time left
+  const poetic = document.getElementById('hero-poetic');
+  if (days === 0 && hours < 6)      poetic.textContent = 'practically now';
+  else if (days === 0)              poetic.textContent = 'just a few hours';
+  else if (days === 1)              poetic.textContent = 'tomorrow';
+  else if (days < 7)                poetic.textContent = 'less than a week';
+  else if (days < 14)               poetic.textContent = 'just a little while';
+  else if (days < 30)               poetic.textContent = 'soon';
+  else                              poetic.textContent = 'soon enough';
+}
+updateCountdown();
+setInterval(updateCountdown, 1000);
+
+/* ============================================================
+   STARS
+   ============================================================ */
+(function makeStars() {
+  const wrap = document.getElementById('stars');
+  for (let i = 0; i < 50; i++) {
+    const s = document.createElement('span');
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top  = Math.random() * 100 + '%';
+    s.style.animationDelay = (Math.random() * 3) + 's';
+    s.style.opacity = (0.3 + Math.random() * 0.6);
+    wrap.appendChild(s);
+  }
+})();
+
+/* ============================================================
+   TIMELINE — your real events
+   Photos: drop files in a /photos folder next to index.html.
+   Filenames already wired below — match these exactly.
+   Edit the `text` lines to be your own words.
+   ============================================================ */
+const EVENTS = [
+  { date: '30 January',  title: 'the day we met',
+    text: 'before anything else, there was just this. funny how a single day quietly becomes the start of everything.',
+    photo: { src: 'photos/30-jan.jpg', caption: 'day one' } },
+
+  { date: '2 February',  title: 'first sesh',
+    text: 'the start of every late night since. should\'ve known then.',
+    photo: { src: 'photos/02-feb.jpg', caption: '' } },
+
+  { date: '10 February', title: 'first facetime',
+    text: 'still my favourite version of seeing you. distance felt smaller already.',
+    photo: { src: 'photos/10-feb.jpg', caption: 'pixels of you' } },
+
+  { date: '24 March',    title: 'first time',
+    text: 'you know which one.',
+    photo: { src: 'photos/24-mar.jpg', caption: '' } },
+
+  { date: '26 March',    title: 'when i asked you out',
+    text: 'easiest question i\'ve ever asked. i was less nervous than i pretended to be.',
+    photo: { src: 'photos/26-mar.jpg', caption: 'official' } },
+
+  { date: '30 March',    title: 'all the fine',
+    text: 'i don\'t even remember what we were doing. just that we were together.',
+    photo: { src: 'photos/30-mar.jpg', caption: '' } },
+
+  { date: '10 May',      title: 'law ball',
+    text: 'you looked unreal. i was trying very hard to play it cool.',
+    photo: { src: 'photos/10-may.jpg', caption: 'dressed up' } },
+
+  { date: '17 May',      title: 'camp',
+    text: 'tents, fires, the works. didn\'t want to come back.',
+    photo: { src: 'photos/17-may.jpg', caption: '' } },
+
+  { date: '22 May',      title: 'first actual date (in your eyes)',
+    text: 'officially-officially, by your standards. fine, i\'ll take it.',
+    photo: { src: 'photos/22-may.jpg', caption: 'by your rules' } },
+
+  { date: '26 May',      title: 'two months',
+    text: 'somehow i like you more now than at the start. no idea how that math works.',
+    photo: { src: 'photos/26-may.jpg', caption: 'two' } },
+];
+
+(function buildTimeline() {
+  const wrap = document.getElementById('timeline');
+  EVENTS.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'event';
+    const p = e.photo;
+    const photoHtml = p ? `
+      <div class="polaroid">
+        <img src="${p.src}" alt="" loading="lazy" />
+        ${p.caption ? `<div class="caption">${p.caption}</div>` : ''}
+      </div>` : '';
+    div.innerHTML = `
+      <div class="event-card">
+        <div class="date">${e.date}</div>
+        <h3>${e.title}</h3>
+        <p>${e.text}</p>
+      </div>
+      ${photoHtml}`;
+    wrap.appendChild(div);
+  });
+})();
+
+/* ============================================================
+   PHOTO GALLERY
+   Auto-loads from your GitHub repo via the GitHub API.
+   Just drop photos (jpg/png/webp/gif, any names) into the
+   /gallery folder and commit — they'll appear automatically.
+
+   1. Set GH_USER and GH_REPO to YOUR github username and repo.
+   2. Make sure the repo is PUBLIC (required for the API to work).
+   3. (Optional fallback) If you don't want to use GitHub, list
+      filenames manually in PHOTOS_MANUAL below.
+   ============================================================ */
+const GH_USER = '';        // e.g. 'hiranya'
+const GH_REPO = '';        // e.g. 'for-you'
+const GH_PATH = 'gallery'; // folder name inside the repo
+
+// Fallback if GH config is blank or the API call fails:
+const PHOTOS_MANUAL = [
+  // 'IMG_1234.jpg',
+  // 'random_name.png',
+];
+
+let GALLERY = [];
+let lbIndex = 0;
+
+async function loadPhotos() {
+  let photos = [];
+  if (GH_USER && GH_REPO) {
+    try {
+      const r = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_PATH}`);
+      if (r.ok) {
+        const data = await r.json();
+        photos = data
+          .filter(f => f.type === 'file' && /\.(jpe?g|png|webp|gif)$/i.test(f.name))
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map(f => `${GH_PATH}/${f.name}`);
+      }
+    } catch (e) { /* fall through to manual */ }
+  }
+  if (photos.length === 0 && PHOTOS_MANUAL.length > 0) {
+    photos = PHOTOS_MANUAL.map(n => `${GH_PATH}/${n}`);
+  }
+  GALLERY = photos;
+  renderGallery();
+}
+
+function renderGallery() {
+  const grid = document.getElementById('photos-grid');
+  grid.innerHTML = '';
+  if (GALLERY.length === 0) {
+    grid.innerHTML = `<p class="photos-empty">drop photos into the <code>/gallery</code> folder — they'll appear here.</p>`;
+    return;
+  }
+  GALLERY.forEach((src, i) => {
+    const img = document.createElement('img');
+    img.src = src;
+    img.loading = 'lazy';
+    img.alt = '';
+    img.style.animationDelay = (i * 0.04) + 's';
+    img.addEventListener('click', () => openLightbox(i));
+    grid.appendChild(img);
+  });
+}
+
+function openLightbox(i) {
+  lbIndex = i;
+  const lb = document.getElementById('lightbox');
+  lb.querySelector('img').src = GALLERY[i];
+  lb.querySelector('.lb-counter').textContent = `${i + 1} / ${GALLERY.length}`;
+  lb.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('show');
+  document.body.style.overflow = '';
+}
+function nextPhoto() {
+  lbIndex = (lbIndex + 1) % GALLERY.length;
+  openLightbox(lbIndex);
+}
+function prevPhoto() {
+  lbIndex = (lbIndex - 1 + GALLERY.length) % GALLERY.length;
+  openLightbox(lbIndex);
+}
+
+// Lightbox interactions
+document.addEventListener('DOMContentLoaded', () => {
+  const lb = document.getElementById('lightbox');
+  lb.addEventListener('click', (e) => {
+    // close only when clicking the backdrop (not the image or buttons)
+    if (e.target === lb) closeLightbox();
+  });
+  lb.querySelector('.lb-close').addEventListener('click', (e) => { e.stopPropagation(); closeLightbox(); });
+  lb.querySelector('.lb-next').addEventListener('click',  (e) => { e.stopPropagation(); nextPhoto(); });
+  lb.querySelector('.lb-prev').addEventListener('click',  (e) => { e.stopPropagation(); prevPhoto(); });
+  lb.querySelector('img').addEventListener('click',       (e) => e.stopPropagation());
+});
+
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('lightbox').classList.contains('show')) return;
+  if (e.key === 'Escape')     closeLightbox();
+  if (e.key === 'ArrowRight') nextPhoto();
+  if (e.key === 'ArrowLeft')  prevPhoto();
+});
+
+loadPhotos();
+
+/* ============================================================
+   BUCKET LIST — edit this array freely.
+   Remove items once you've done them (just delete the line).
+   ============================================================ */
+const BUCKET = [
+  'Traveling together',
+  'Concert',
+  'Photobooth',
+];
+
+(function buildBucket() {
+  const wrap = document.getElementById('bucket-list');
+  BUCKET.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'item';
+    row.textContent = item;
+    wrap.appendChild(row);
+  });
+})();
+</script>
+</body>
+</html>
