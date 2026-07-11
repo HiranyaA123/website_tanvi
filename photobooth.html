@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>photobooth · for you ♡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ---- shared design system (matches index.html) ---- */
+  :root {
+    --night:#1a1129; --night-2:#251636; --plum:#3b2147;
+    --coral:#f0846a; --sunset:#f4a261; --rose:#e76f51;
+    --cream:#f4ede4; --cream-dim:#d9cfc1; --sage:#a8b89e;
+    --line:rgba(244,237,228,0.12); --line-strong:rgba(244,237,228,0.25);
+    --serif:'Fraunces','Times New Roman',serif;
+    --sans:'Manrope',system-ui,sans-serif;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { scroll-behavior:smooth; }
+  body {
+    background:var(--night); color:var(--cream);
+    font-family:var(--sans); line-height:1.5;
+    overflow-x:hidden; min-height:100vh;
+  }
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none;
+    z-index:999; opacity:0.04;
+    background-image:url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/></svg>");
+  }
+
+  /* ---- nav (shared pattern) ---- */
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    padding:1.2rem 2.5rem; display:flex;
+    justify-content:space-between; align-items:center;
+    background:rgba(26,17,41,0.7);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--line);
+  }
+  nav .brand {
+    font-family:var(--serif); font-style:italic; font-weight:400;
+    font-size:1.15rem; color:var(--cream); letter-spacing:0.02em;
+    text-decoration:none;
+  }
+  nav .brand span { color:var(--coral); }
+  nav ul { display:flex; gap:2.2rem; list-style:none; }
+  nav ul a {
+    color:var(--cream-dim); text-decoration:none; font-size:0.82rem;
+    font-weight:500; letter-spacing:0.12em; text-transform:uppercase;
+    transition:color 0.3s ease; position:relative;
+  }
+  nav ul a:hover { color:var(--coral); }
+  nav ul a::after {
+    content:''; position:absolute; left:0; bottom:-4px;
+    width:0; height:1px; background:var(--coral); transition:width 0.3s ease;
+  }
+  nav ul a:hover::after { width:100%; }
+  nav ul a.active { color:var(--coral); }
+  nav ul a.active::after { width:100%; }
+  @media (max-width:720px) {
+    nav { padding:1rem 1.2rem; flex-direction:column; gap:0.7rem; }
+    nav ul { gap:1.2rem; flex-wrap:wrap; justify-content:center; }
+    nav ul a { font-size:0.7rem; }
+  }
+
+  section {
+    min-height:100vh; padding:8rem 1.5rem 6rem; position:relative;
+    background:
+      radial-gradient(ellipse at 20% 12%, rgba(240,132,106,0.14), transparent 55%),
+      radial-gradient(ellipse at 82% 88%, rgba(244,162,97,0.10), transparent 55%),
+      var(--night-2);
+  }
+  .section-label {
+    font-size:0.7rem; font-weight:600; letter-spacing:0.35em;
+    text-transform:uppercase; color:var(--sunset); margin-bottom:1rem;
+    display:block; text-align:center;
+  }
+  .section-title {
+    font-family:var(--serif); font-weight:300; font-style:italic;
+    font-size:clamp(2.2rem,5vw,3.6rem); letter-spacing:-0.02em;
+    color:var(--cream); margin-bottom:2.5rem; line-height:1.05; text-align:center;
+  }
+
+  .booth-wrap { max-width:720px; margin:0 auto; }
+
+  /* ---- mode toggle ---- */
+  .modebar {
+    display:flex; gap:0.5rem; justify-content:center;
+    margin-bottom:2rem; border:1px solid var(--line);
+    border-radius:999px; padding:5px; width:max-content; margin-left:auto; margin-right:auto;
+    background:rgba(244,237,228,0.03);
+  }
+  .mode-btn {
+    background:transparent; border:none; color:var(--cream-dim);
+    font-family:var(--sans); font-size:0.78rem; font-weight:600;
+    letter-spacing:0.14em; text-transform:uppercase; padding:0.6rem 1.4rem;
+    border-radius:999px; cursor:pointer; transition:all 0.3s ease;
+  }
+  .mode-btn.active { background:var(--coral); color:var(--night); }
+
+  /* ---- camera stage ---- */
+  .stage {
+    position:relative; width:100%; max-width:440px; aspect-ratio:1/1;
+    margin:0 auto; background:#0d0717; border-radius:6px; overflow:hidden;
+    border:10px solid var(--cream);
+    box-shadow:0 18px 50px rgba(0,0,0,0.5);
+  }
+  .stage video {
+    width:100%; height:100%; object-fit:cover;
+    transform:scaleX(-1); /* mirror like a real selfie */
+    display:block; background:#0d0717;
+  }
+  .cam-msg {
+    position:absolute; inset:0; display:flex; align-items:center;
+    justify-content:center; text-align:center; padding:2rem;
+    font-family:var(--serif); font-style:italic; color:var(--cream-dim);
+    font-size:1.05rem; background:rgba(13,7,23,0.85);
+  }
+  .flash {
+    position:absolute; inset:0; background:var(--cream);
+    opacity:0; pointer-events:none;
+  }
+  .flash.go { animation:flash 0.5s ease-out; }
+  @keyframes flash { 0% { opacity:0.95; } 100% { opacity:0; } }
+  .counter {
+    position:absolute; inset:0; display:none; align-items:center;
+    justify-content:center; background:rgba(13,7,23,0.35);
+    pointer-events:none;
+  }
+  .counter.show { display:flex; }
+  .counter span {
+    font-family:var(--serif); font-weight:300; font-style:italic;
+    font-size:clamp(5rem,22vw,9rem); line-height:1; color:var(--cream);
+    text-shadow:0 4px 30px rgba(0,0,0,0.6);
+    animation:pop 0.5s ease-out;
+  }
+  @keyframes pop { from { transform:scale(1.5); opacity:0.2; } to { transform:scale(1); opacity:1; } }
+
+  .status {
+    text-align:center; margin:1.4rem 0 0.4rem;
+    font-family:var(--serif); font-style:italic; font-size:1.1rem;
+    color:var(--cream); min-height:1.5rem;
+  }
+  .status .present { color:var(--coral); }
+
+  .shutter {
+    display:block; margin:1rem auto 0.6rem; width:76px; height:76px;
+    border-radius:50%; border:3px solid var(--cream);
+    background:var(--coral); cursor:pointer; position:relative;
+    transition:transform 0.2s ease, box-shadow 0.3s ease;
+    box-shadow:0 0 0 4px rgba(240,132,106,0.18);
+  }
+  .shutter span {
+    position:absolute; inset:8px; border-radius:50%;
+    border:2px solid rgba(26,17,41,0.35);
+  }
+  .shutter:hover { transform:scale(1.06); box-shadow:0 0 0 8px rgba(240,132,106,0.22); }
+  .shutter:active { transform:scale(0.95); }
+  .shutter:disabled { opacity:0.4; cursor:default; transform:none; }
+  .hint {
+    text-align:center; color:var(--cream-dim); font-size:0.85rem;
+    letter-spacing:0.02em; margin-bottom:1rem;
+  }
+
+  /* ---- result ---- */
+  #result-panel { text-align:center; }
+  #result-img {
+    max-width:min(360px,80vw); width:100%; border-radius:4px;
+    box-shadow:0 18px 50px rgba(0,0,0,0.55); margin-bottom:1.6rem;
+    animation:fadeUp 0.6s ease;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .result-actions { display:flex; gap:0.7rem; flex-wrap:wrap; justify-content:center; }
+  .rbtn {
+    font-family:var(--sans); font-size:0.78rem; font-weight:600;
+    letter-spacing:0.12em; text-transform:uppercase; padding:0.7rem 1.4rem;
+    border-radius:999px; cursor:pointer; border:1px solid var(--line-strong);
+    background:transparent; color:var(--cream); transition:all 0.3s ease;
+  }
+  .rbtn:hover { border-color:var(--coral); color:var(--coral); }
+  .rbtn.primary { background:var(--coral); color:var(--night); border-color:var(--coral); }
+  .rbtn.primary:hover { background:var(--sunset); border-color:var(--sunset); color:var(--night); }
+  .rbtn.danger:hover { border-color:var(--rose); color:var(--rose); }
+  .rbtn.ghost { opacity:0.7; }
+
+  /* ---- gallery ---- */
+  .gallery-head {
+    text-align:center; margin:4.5rem 0 1.8rem;
+    font-family:var(--serif); font-style:italic; font-size:1.5rem;
+    color:var(--cream);
+  }
+  .gallery {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:1.2rem; max-width:820px; margin:0 auto;
+  }
+  .gcard {
+    position:relative; border-radius:4px; overflow:hidden;
+    box-shadow:0 8px 26px rgba(0,0,0,0.45);
+  }
+  .gcard img { width:100%; display:block; cursor:zoom-in;
+    transition:transform 0.4s ease; }
+  .gcard:hover img { transform:scale(1.03); }
+  .gactions {
+    position:absolute; left:0; right:0; bottom:0;
+    display:flex; opacity:0; transition:opacity 0.3s ease;
+    background:linear-gradient(to top, rgba(13,7,23,0.92), transparent);
+    padding:1.6rem 0.4rem 0.5rem;
+  }
+  .gcard:hover .gactions, .gcard:focus-within .gactions { opacity:1; }
+  .gactions button {
+    flex:1; background:transparent; border:none; color:var(--cream);
+    font-family:var(--sans); font-size:0.68rem; font-weight:600;
+    letter-spacing:0.1em; text-transform:uppercase; cursor:pointer;
+    padding:0.35rem 0; transition:color 0.2s ease;
+  }
+  .gactions button:hover { color:var(--coral); }
+  .gactions button[data-act="del"]:hover { color:var(--rose); }
+  .muted {
+    grid-column:1/-1; text-align:center; color:var(--cream-dim);
+    font-family:var(--serif); font-style:italic; font-size:1.05rem;
+  }
+
+  /* ---- PIN gate ---- */
+  .pin-gate {
+    position:fixed; inset:0; z-index:2000; display:flex;
+    align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at 50% 50%, rgba(240,132,106,0.16), transparent 60%),
+      linear-gradient(135deg, var(--night), var(--plum));
+    transition:opacity 0.7s ease, visibility 0.7s ease;
+  }
+  .pin-gate.hide { opacity:0; visibility:hidden; pointer-events:none; }
+  .pin-inner { text-align:center; padding:2rem; width:min(360px,90vw); }
+  .pin-heart { font-size:3rem; color:var(--coral); margin-bottom:1rem; }
+  .pin-inner h1 {
+    font-family:var(--serif); font-style:italic; font-weight:300;
+    font-size:1.6rem; color:var(--cream); margin-bottom:1.6rem;
+  }
+  .pin-inner input {
+    width:100%; text-align:center; padding:0.9rem 1rem;
+    background:rgba(244,237,228,0.06); border:1px solid var(--line-strong);
+    border-radius:6px; color:var(--cream); font-family:var(--serif);
+    font-size:1.4rem; letter-spacing:0.5em; outline:none;
+    transition:border-color 0.3s ease;
+  }
+  .pin-inner input:focus { border-color:var(--coral); }
+  .pin-inner button {
+    margin-top:1rem; width:100%; padding:0.85rem; border-radius:6px;
+    border:none; background:var(--coral); color:var(--night);
+    font-family:var(--sans); font-weight:600; letter-spacing:0.14em;
+    text-transform:uppercase; font-size:0.8rem; cursor:pointer;
+    transition:background 0.3s ease;
+  }
+  .pin-inner button:hover { background:var(--sunset); }
+  .pin-err { color:var(--rose); font-size:0.85rem; margin-top:0.8rem; min-height:1.2rem;
+    font-family:var(--serif); font-style:italic; }
+
+  /* ---- lightbox (matches index.html) ---- */
+  .lightbox {
+    position:fixed; inset:0; background:rgba(10,5,20,0.94);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    z-index:1000; display:none; align-items:center; justify-content:center;
+    padding:2rem; cursor:zoom-out; animation:lbFade 0.3s ease;
+  }
+  .lightbox.show { display:flex; }
+  @keyframes lbFade { from { opacity:0; } to { opacity:1; } }
+  .lightbox img {
+    max-width:90vw; max-height:88vh; object-fit:contain;
+    box-shadow:0 24px 80px rgba(0,0,0,0.7); border-radius:4px; cursor:default;
+  }
+  .lb-close {
+    position:absolute; top:1.5rem; right:1.5rem; width:40px; height:40px;
+    background:rgba(244,237,228,0.08); border:1px solid var(--line);
+    color:var(--cream); border-radius:50%; cursor:pointer; font-size:1rem;
+    display:flex; align-items:center; justify-content:center;
+    transition:all 0.3s ease; backdrop-filter:blur(8px); font-family:var(--serif);
+  }
+  .lb-close:hover { background:var(--coral); color:var(--night); border-color:var(--coral); }
+
+  /* ---- toast ---- */
+  .toast {
+    position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%) translateY(20px);
+    background:rgba(26,17,41,0.92); border:1px solid var(--line-strong);
+    color:var(--cream); font-family:var(--serif); font-style:italic;
+    padding:0.8rem 1.4rem; border-radius:999px; font-size:0.95rem;
+    z-index:1500; opacity:0; pointer-events:none;
+    transition:opacity 0.4s ease, transform 0.4s ease;
+    backdrop-filter:blur(10px); max-width:90vw; text-align:center;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  footer {
+    text-align:center; padding:3rem 2rem; background:var(--night);
+    border-top:1px solid var(--line); font-family:var(--serif);
+    font-style:italic; color:var(--cream-dim); font-size:0.95rem;
+  }
+  footer .heart { color:var(--coral); }
+</style>
+</head>
+<body>
+
+<!-- ===== PIN GATE ===== -->
+<div class="pin-gate" id="pin-gate">
+  <div class="pin-inner">
+    <div class="pin-heart">♡</div>
+    <h1>our pin</h1>
+    <form id="pin-form" autocomplete="off">
+      <input id="pin-input" inputmode="numeric" maxlength="8" aria-label="our pin" placeholder="••••" />
+      <button type="submit">enter</button>
+      <div class="pin-err" id="pin-err"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== NAV (shared) ===== -->
+<nav>
+  <a class="brand" href="index.html">for <span>you</span>, from me</a>
+  <ul>
+    <li><a href="index.html#home">Home</a></li>
+    <li><a href="index.html#story">Our Story</a></li>
+    <li><a href="index.html#photos">Photos</a></li>
+    <li><a href="index.html#bucket">Bucket List</a></li>
+    <li><a href="photobooth.html" class="active">Photobooth</a></li>
+  </ul>
+</nav>
+
+<!-- ===== PHOTOBOOTH ===== -->
+<section id="booth">
+  <div class="booth-wrap">
+    <span class="section-label">say cheese</span>
+    <h2 class="section-title">our photobooth.</h2>
+
+    <div class="modebar">
+      <button class="mode-btn active" data-mode="together">together</button>
+      <button class="mode-btn" data-mode="solo">solo</button>
+    </div>
+
+    <div id="stage-panel">
+      <div class="stage">
+        <video id="preview" playsinline muted autoplay></video>
+        <div class="cam-msg" id="cam-msg">starting camera…</div>
+        <div class="flash" id="flash"></div>
+        <div class="counter" id="counter"><span id="count-num"></span></div>
+      </div>
+      <div class="status" id="status">—</div>
+      <button class="shutter" id="shutter" aria-label="take photos"><span></span></button>
+      <div class="hint" id="hint">tap the shutter when you're ready</div>
+    </div>
+
+    <div id="result-panel" hidden>
+      <img id="result-img" alt="your photobooth strip" />
+      <div class="result-actions">
+        <button id="btn-keep" class="rbtn primary">keep</button>
+        <button id="btn-dl"   class="rbtn">download</button>
+        <button id="btn-del"  class="rbtn danger">delete</button>
+        <button id="btn-again" class="rbtn ghost">again</button>
+      </div>
+    </div>
+
+    <div class="gallery-head">kept strips</div>
+    <div class="gallery" id="gallery"></div>
+  </div>
+</section>
+
+<!-- ===== LIGHTBOX ===== -->
+<div class="lightbox" id="lightbox">
+  <button class="lb-close" aria-label="Close">✕</button>
+  <img src="" alt="" />
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  made with <span class="heart">♡</span> · one snap at a time
+</footer>
+
+<!-- the ONE allowed dependency -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================================================
+   PHOTOBOOTH — synced two-device photo strip
+   She's in Adelaide, I'm in Sydney. Each device only ever sees
+   its OWN camera. Supabase Realtime syncs the countdown; each
+   device captures locally; frames are uploaded; both compose the
+   same side-by-side strip. No WebRTC, no live video between us.
+
+   Solo mode works fully offline (capture + compose + download)
+   with no Supabase configured — every Supabase call is guarded.
+   ============================================================ */
+
+/* ---- CONFIG (paste real values) ---- */
+const SUPABASE_URL      = 'PASTE_URL_HERE';
+const SUPABASE_ANON_KEY = 'PASTE_ANON_KEY_HERE';
+
+const PIN   = '2603';               // our pin (change me)
+const BUCKET = 'strips';            // public storage bucket
+const ROOM   = 'photobooth-room';   // realtime channel
+
+const FRAMES = 4;                   // snaps per strip
+const SNAP_GAP = 2500;              // ms between snaps
+const LEAD = 3000;                  // ms lead before the first snap
+const CAP = 720;                    // captured frame size (px, square)
+const PARTNER_TIMEOUT = 20000;      // ms to wait for her frames
+
+/* Warm filter baked into every capture so both devices match. */
+const WARM = 'saturate(1.06) contrast(0.98) brightness(1.03) sepia(0.08)';
+
+/* ---- Supabase (guarded) ---- */
+const hasSupabase =
+  SUPABASE_URL && SUPABASE_ANON_KEY &&
+  SUPABASE_URL !== 'PASTE_URL_HERE' &&
+  SUPABASE_ANON_KEY !== 'PASTE_ANON_KEY_HERE' &&
+  window.supabase;
+const sb = hasSupabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+const deviceId = 'd_' + Math.random().toString(36).slice(2, 10);
+
+/* ---- state ---- */
+let mode = 'together';
+let stream = null;
+let channel = null;
+let presentIds = [];
+let session = null;        // { id, startAt, initiator, active, solo }
+let myFrames = [];         // my captured canvases
+let lastResult = null;     // { canvas, id, mode, saved, path }
+let pendingStarts = [];
+let startTimer = null;
+
+const el = id => document.getElementById(id);
+
+/* ============================================================
+   BOOTSTRAP + PIN
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  // lightbox
+  const lb = el('lightbox');
+  lb.addEventListener('click', e => { if (e.target === lb) closeLightbox(); });
+  lb.querySelector('.lb-close').addEventListener('click', closeLightbox);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+  // pin
+  if (sessionStorage.getItem('pb_ok') === '1') { openBooth(); }
+  el('pin-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const val = el('pin-input').value.trim();
+    if (val === PIN) {
+      sessionStorage.setItem('pb_ok', '1');
+      el('pin-gate').classList.add('hide');
+      openBooth();
+    } else {
+      el('pin-err').textContent = 'not quite. try again ♡';
+      el('pin-input').value = '';
+      el('pin-input').focus();
+    }
+  });
+});
+
+let boothOpened = false;
+function openBooth() {
+  el('pin-gate').classList.add('hide');
+  if (boothOpened) return;
+  boothOpened = true;
+
+  startCamera();
+  setupModeToggle();
+  el('shutter').addEventListener('click', onShutter);
+  el('btn-again').addEventListener('click', resetBooth);
+  el('btn-dl').addEventListener('click', () => {
+    if (lastResult) downloadCanvas(lastResult.canvas, 'photobooth-' + lastResult.id + '.jpg');
+  });
+  el('btn-keep').addEventListener('click', onKeep);
+  el('btn-del').addEventListener('click', onDeleteCurrent);
+
+  if (sb) joinRoom();
+  applyModeUI();
+  loadGallery();
+
+  // iOS: resume preview after tab/app switch
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && stream) { const v = el('preview'); if (v.paused) v.play().catch(()=>{}); }
+  });
+}
+
+/* ============================================================
+   CAMERA
+   ============================================================ */
+async function startCamera() {
+  const v = el('preview'), msg = el('cam-msg');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    msg.textContent = 'this browser can\'t open the camera 😕'; return;
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 1280 } },
+      audio: false
+    });
+    v.srcObject = stream;
+    v.setAttribute('playsinline', '');
+    await v.play().catch(()=>{});
+    msg.style.display = 'none';
+  } catch (err) {
+    msg.style.display = 'flex';
+    msg.textContent = 'i can\'t see the camera — allow camera access and refresh ♡';
+  }
+}
+
+/* ============================================================
+   MODE TOGGLE
+   ============================================================ */
+function setupModeToggle() {
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (session && session.active) return;
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+      applyModeUI();
+    });
+  });
+}
+function applyModeUI() {
+  if (mode === 'solo') {
+    setStatus('solo — just you ♡');
+    el('hint').textContent = 'tap the shutter — 4 snaps, one strip';
+  } else {
+    updatePresence();
+    el('hint').textContent = sb
+      ? 'both of you tap in, then either hits the shutter'
+      : 'together mode needs supabase — solo works right now';
+  }
+}
+
+/* ============================================================
+   REALTIME (presence + broadcast)
+   ============================================================ */
+function joinRoom() {
+  if (!sb || channel) return;
+  channel = sb.channel(ROOM, { config: { presence: { key: deviceId }, broadcast: { self: true } } });
+  channel.on('presence', { event: 'sync' }, () => {
+    presentIds = Object.keys(channel.presenceState());
+    if (mode === 'together') updatePresence();
+  });
+  channel.on('broadcast', { event: 'start' }, ({ payload }) => onStart(payload));
+  channel.subscribe(async status => {
+    if (status === 'SUBSCRIBED') { try { await channel.track({ deviceId, at: Date.now() }); } catch(e){} }
+  });
+}
+function updatePresence() {
+  if (mode !== 'together') return;
+  if (!sb) { setStatus('add supabase to sync — or use solo'); return; }
+  if (presentIds.length >= 2) setStatus('<span class="present">she\'s here ♡</span>');
+  else setStatus('waiting for her…');
+}
+
+/* ============================================================
+   SHUTTER + SESSION START (first start wins, deterministically)
+   ============================================================ */
+function onShutter() {
+  if (session && session.active) return;
+  if (mode === 'solo') {
+    beginSession({ id: newId(), startAt: Date.now() + 900, initiator: deviceId, solo: true });
+    return;
+  }
+  // together
+  if (!sb) { toast('together mode needs supabase — try solo ♡'); return; }
+  if (presentIds.length < 2) { toast('waiting for her to join…'); return; }
+  channel.send({
+    type: 'broadcast', event: 'start',
+    payload: { id: newId(), startAt: Date.now() + LEAD, initiator: deviceId }
+  });
+  // broadcast self:true → we also receive it in onStart
+}
+
+// Buffer briefly so BOTH devices pick the same winner if both tap.
+function onStart(payload) {
+  if (session && session.active) return;
+  pendingStarts.push(payload);
+  if (startTimer) return;
+  startTimer = setTimeout(() => {
+    startTimer = null;
+    if (session && session.active) { pendingStarts = []; return; }
+    pendingStarts.sort((a, b) => (a.startAt - b.startAt) || (a.id < b.id ? -1 : 1));
+    const win = pendingStarts[0];
+    pendingStarts = [];
+    beginSession(win);
+  }, 500);
+}
+
+function beginSession(payload) {
+  session = Object.assign({ active: true }, payload);
+  myFrames = [];
+  el('shutter').disabled = true;
+  runCountdown();
+}
+
+/* ============================================================
+   COUNTDOWN + CAPTURE (both devices, same shared clock)
+   ============================================================ */
+function runCountdown() {
+  const snaps = [];
+  for (let i = 0; i < FRAMES; i++) snaps.push(session.startAt + i * SNAP_GAP);
+  el('counter').classList.add('show');
+  let idx = 0, lastShown = null;
+
+  const tick = setInterval(() => {
+    const now = Date.now();
+    if (idx >= FRAMES) { clearInterval(tick); return; }
+    const remain = Math.ceil((snaps[idx] - now) / 1000);
+    const label = remain > 0 ? String(remain) : '';
+    if (label !== lastShown) {   // re-trigger the pop animation on change
+      const span = el('count-num');
+      span.textContent = label;
+      span.style.animation = 'none'; void span.offsetWidth; span.style.animation = '';
+      lastShown = label;
+    }
+    if (now >= snaps[idx]) {
+      snap();
+      idx++;
+      if (idx >= FRAMES) { clearInterval(tick); el('counter').classList.remove('show'); onCaptured(); }
+    }
+  }, 80);
+}
+
+function snap() {
+  const v = el('preview');
+  const c = document.createElement('canvas');
+  c.width = c.height = CAP;
+  const g = c.getContext('2d');
+  g.fillStyle = '#0d0717'; g.fillRect(0, 0, CAP, CAP);
+  if (v.videoWidth && v.videoHeight) {
+    const side = Math.min(v.videoWidth, v.videoHeight);
+    const sx = (v.videoWidth - side) / 2, sy = (v.videoHeight - side) / 2;
+    g.filter = WARM;
+    g.translate(CAP, 0); g.scale(-1, 1);            // mirror (selfie)
+    g.drawImage(v, sx, sy, side, side, 0, 0, CAP, CAP);
+  }
+  myFrames.push(c);
+  const f = el('flash');
+  f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+}
+
+/* ============================================================
+   AFTER CAPTURE → upload / wait / compose
+   ============================================================ */
+async function onCaptured() {
+  el('shutter').disabled = false;
+
+  // Solo, or Supabase not configured → compose locally from my frames.
+  if (session.solo || mode === 'solo' || !sb) {
+    const strip = composeStrip([myFrames]);
+    showResult(strip, 'solo', /*saved*/ false);
+    return;
+  }
+
+  // Together: upload my frames, wait for hers, compose side-by-side.
+  setStatus('uploading…');
+  try {
+    await uploadFrames();
+  } catch (e) {
+    toast('upload failed — saving your half ♡');
+    showResult(composeStrip([myFrames]), 'solo', false);
+    return;
+  }
+  setStatus('waiting for her photos…');
+  const files = await waitForFrames(2 * FRAMES, PARTNER_TIMEOUT);
+  if (!files) { offerSoloHalf(); return; }
+
+  setStatus('');
+  try {
+    const strip = await composeTogether(files);
+    // The initiator saves the finished strip to the gallery.
+    if (session.initiator === deviceId) {
+      await keepStrip(strip, session.id, 'together');
+      showResult(strip, 'together', true);
+    } else {
+      showResult(strip, 'together', /*saved by initiator*/ true);
+    }
+  } catch (e) {
+    toast('couldn\'t build the strip — try again');
+    resetBooth();
+  }
+}
+
+function offerSoloHalf() {
+  setStatus('');
+  toast('she didn\'t finish in time — here\'s your half ♡');
+  showResult(composeStrip([myFrames]), 'solo', false);
+}
+
+/* ---- upload my 4 frames ---- */
+async function uploadFrames() {
+  for (let i = 0; i < myFrames.length; i++) {
+    const blob = await toBlob(myFrames[i]);
+    const path = 'sessions/' + session.id + '/' + deviceId + '-' + i + '.jpg';
+    const { error } = await sb.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+    if (error) throw error;
+  }
+}
+
+/* ---- poll storage until both devices' frames exist ---- */
+async function waitForFrames(expected, timeoutMs) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const { data } = await sb.storage.from(BUCKET).list('sessions/' + session.id, { limit: 100 });
+    if (data) {
+      const frames = data.filter(f => /-\d+\.jpg$/.test(f.name));
+      if (frames.length >= expected) return frames;
+    }
+    await sleep(1500);
+  }
+  return null;
+}
+
+/* ============================================================
+   COMPOSE the strip
+   ============================================================ */
+function composeStrip(columns) {
+  const cols = columns.length, rows = FRAMES;
+  const cell = 300, gap = 12, pad = 22, capH = 56;
+  const W = pad * 2 + cols * cell + (cols - 1) * gap;
+  const H = pad + rows * cell + (rows - 1) * gap + capH;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+
+  g.fillStyle = '#f4ede4';               // cream print border
+  g.fillRect(0, 0, W, H);
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = pad + c * (cell + gap);
+      const y = pad + r * (cell + gap);
+      const src = columns[c] && columns[c][r];
+      if (src) {
+        const sw = src.width || src.naturalWidth || CAP;
+        const sh = src.height || src.naturalHeight || CAP;
+        g.drawImage(src, 0, 0, sw, sh, x, y, cell, cell);
+      } else {
+        g.fillStyle = '#e5dccf'; g.fillRect(x, y, cell, cell);
+      }
+      g.strokeStyle = 'rgba(42,31,58,0.12)';
+      g.lineWidth = 1;
+      g.strokeRect(x + 0.5, y + 0.5, cell - 1, cell - 1);
+    }
+  }
+
+  const date = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+  g.fillStyle = '#2a1f3a';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.font = 'italic 20px Fraunces, Georgia, serif';
+  g.fillText('justfortan.beauty · ' + date.toLowerCase(), W / 2, H - capH / 2 + 2);
+  return cv;
+}
+
+async function composeTogether(files) {
+  // two device ids, sorted for a stable left|right ordering on both phones
+  const ids = Array.from(new Set(files.map(f => f.name.replace(/-\d+\.jpg$/, '')))).sort();
+  const loadCol = id => Promise.all(
+    Array.from({ length: FRAMES }, (_, i) =>
+      loadImg(publicUrl('sessions/' + session.id + '/' + id + '-' + i + '.jpg')))
+  );
+  if (ids.length < 2) {
+    const col = await loadCol(ids[0]);
+    return composeStrip([col]);
+  }
+  const [colA, colB] = await Promise.all([loadCol(ids[0]), loadCol(ids[1])]);
+  return composeStrip([colA, colB]);
+}
+
+/* ============================================================
+   RESULT panel
+   ============================================================ */
+function showResult(canvas, kind, saved) {
+  lastResult = { canvas, id: session ? session.id : newId(), mode: kind, saved: !!saved, path: saved ? ('strips/' + session.id + '.jpg') : null };
+  el('result-img').src = canvas.toDataURL('image/jpeg', 0.9);
+  el('stage-panel').hidden = true;
+  el('result-panel').hidden = false;
+
+  // keep/delete only make sense with Supabase
+  el('btn-keep').style.display = sb ? '' : 'none';
+  el('btn-del').style.display  = sb ? '' : 'none';
+  el('btn-keep').textContent = saved ? 'saved ♡' : 'keep';
+  el('result-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function onKeep() {
+  if (!sb || !lastResult) { toast('connect supabase to keep strips'); return; }
+  if (lastResult.saved) { toast('already saved ♡'); loadGallery(); return; }
+  el('btn-keep').disabled = true;
+  try {
+    await keepStrip(lastResult.canvas, lastResult.id, lastResult.mode);
+    lastResult.saved = true;
+    el('btn-keep').textContent = 'saved ♡';
+    toast('kept ♡');
+  } catch (e) { toast('couldn\'t save — try again'); }
+  el('btn-keep').disabled = false;
+}
+
+async function onDeleteCurrent() {
+  if (!lastResult) return;
+  if (lastResult.saved) {
+    if (!confirm('delete this strip?')) return;
+    await deleteStrip(lastResult.id);
+    toast('deleted');
+  }
+  resetBooth();
+}
+
+/* ---- keep / delete in Supabase ---- */
+async function keepStrip(canvas, id, kind) {
+  const blob = await toBlob(canvas, 0.9);
+  const path = 'strips/' + id + '.jpg';
+  const up = await sb.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+  if (up.error) throw up.error;
+  const ins = await sb.from('strips').upsert({ id, path, session_id: id, mode: kind });
+  if (ins.error) throw ins.error;
+  loadGallery();
+}
+
+async function deleteStrip(id) {
+  if (!sb) return;
+  await sb.storage.from(BUCKET).remove(['strips/' + id + '.jpg']);
+  const { data } = await sb.storage.from(BUCKET).list('sessions/' + id, { limit: 100 });
+  if (data && data.length) {
+    await sb.storage.from(BUCKET).remove(data.map(f => 'sessions/' + id + '/' + f.name));
+  }
+  await sb.from('strips').delete().eq('id', id);
+  loadGallery();
+}
+
+/* ============================================================
+   GALLERY
+   ============================================================ */
+async function loadGallery() {
+  const grid = el('gallery');
+  if (!sb) { grid.innerHTML = '<p class="muted">connect supabase and your kept strips live here ♡</p>'; return; }
+  const { data, error } = await sb.from('strips').select('*').order('created_at', { ascending: false });
+  if (error || !data || !data.length) {
+    grid.innerHTML = '<p class="muted">no strips yet — take one ♡</p>';
+    return;
+  }
+  grid.innerHTML = '';
+  data.forEach(row => {
+    const url = publicUrl(row.path);
+    const fig = document.createElement('figure');
+    fig.className = 'gcard';
+    const img = document.createElement('img');
+    img.src = url; img.loading = 'lazy'; img.alt = 'photobooth strip';
+    img.addEventListener('click', () => openLightbox(url));
+    const acts = document.createElement('div');
+    acts.className = 'gactions';
+    acts.innerHTML = '<button data-act="view">view</button>' +
+                     '<button data-act="dl">save</button>' +
+                     '<button data-act="del">delete</button>';
+    acts.querySelector('[data-act="view"]').onclick = () => openLightbox(url);
+    acts.querySelector('[data-act="dl"]').onclick   = () => downloadUrl(url, row.id + '.jpg');
+    acts.querySelector('[data-act="del"]').onclick  = () => { if (confirm('delete this strip?')) deleteStrip(row.id); };
+    fig.appendChild(img); fig.appendChild(acts);
+    grid.appendChild(fig);
+  });
+}
+
+/* ============================================================
+   LIGHTBOX
+   ============================================================ */
+function openLightbox(url) {
+  const lb = el('lightbox');
+  lb.querySelector('img').src = url;
+  lb.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  el('lightbox').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+function resetBooth() {
+  session = null;
+  myFrames = [];
+  lastResult = null;
+  pendingStarts = [];
+  el('result-panel').hidden = true;
+  el('stage-panel').hidden = false;
+  el('shutter').disabled = false;
+  el('counter').classList.remove('show');
+  applyModeUI();
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function newId() { return 's_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function toBlob(canvas, q) { return new Promise(res => canvas.toBlob(res, 'image/jpeg', q || 0.85)); }
+function publicUrl(path) { return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl; }
+function loadImg(url) {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload = () => res(im);
+    im.onerror = rej;
+    im.src = url;
+  });
+}
+function setStatus(html) { el('status').innerHTML = html; }
+function downloadCanvas(canvas, name) {
+  canvas.toBlob(b => {
+    const u = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = u; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(u), 1000);
+  }, 'image/jpeg', 0.92);
+}
+async function downloadUrl(url, name) {
+  try {
+    const r = await fetch(url); const b = await r.blob();
+    const u = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = u; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(u), 1000);
+  } catch (e) { window.open(url, '_blank'); }
+}
+let toastTimer = null;
+function toast(msg) {
+  const t = el('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+</script>
+</body>
+</html>
