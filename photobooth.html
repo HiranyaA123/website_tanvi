@@ -399,7 +399,7 @@ const ROOM   = 'photobooth-room';   // realtime channel
 
 const FRAMES = 4;                   // snaps per strip
 const SNAP_GAP = 2500;              // ms between snaps
-const LEAD = 3000;                  // ms lead before the first snap
+const LEAD = 4000;                  // ms lead before the first snap (room for the clamped 3..2..1)
 const CAP = 720;                    // captured frame size (px, square)
 const PARTNER_TIMEOUT = 20000;      // ms to wait for her frames
 
@@ -426,6 +426,18 @@ let myFrames = [];         // my captured canvases
 let lastResult = null;     // { canvas, id, mode, saved, path }
 let pendingStarts = [];
 let startTimer = null;
+let countdownTimer = null;
+
+/* ---- clock sync (NTP-style over the Realtime channel) ----
+   peerClockOffset = the number of ms to ADD to a PEER-clock timestamp to get
+   MY local-clock time. So: myTime = peerTime + peerClockOffset.
+   (Equivalently peerClockOffset = myClock - peerClock.) See runSync() +
+   verifyOffsetSign() below for the derivation and a sanity check. */
+let peerClockOffset = 0;   // ms; 0 until synced (safe no-op)
+let clockSynced = false;
+let syncing = false;
+let syncedPeer = null;     // deviceId we last synced against
+const pendingPings = {};   // pingId -> callback(pongPayload)
 
 const el = id => document.getElementById(id);
 
@@ -540,12 +552,105 @@ function joinRoom() {
   channel.on('presence', { event: 'sync' }, () => {
     presentIds = Object.keys(channel.presenceState());
     if (mode === 'together') updatePresence();
+    // (Re)sync clocks whenever both are present — also covers a partner rejoin,
+    // since each page load gets a fresh random deviceId, so the peer id changes.
+    if (presentIds.length >= 2) {
+      const peer = presentIds.find(id => id !== deviceId);
+      if (peer && peer !== syncedPeer && !syncing) { syncedPeer = peer; runSync(); }
+    } else {
+      clockSynced = false; peerClockOffset = 0; syncedPeer = null;
+    }
   });
   channel.on('broadcast', { event: 'start' }, ({ payload }) => onStart(payload));
+
+  // --- NTP-style time handshake ---
+  // Responder: stamp the receive time immediately, echo everything back.
+  channel.on('broadcast', { event: 'time_ping' }, ({ payload }) => {
+    const tReceived = Date.now();
+    if (payload.from === deviceId) return;      // ignore my own ping (broadcast self:true)
+    channel.send({ type: 'broadcast', event: 'time_pong', payload: {
+      pingId: payload.pingId, tSent: payload.tSent,
+      tReceived: tReceived, tReplied: Date.now(),
+      from: deviceId, to: payload.from
+    }});
+  });
+  // Pinger: hand the pong to the waiting sample.
+  channel.on('broadcast', { event: 'time_pong' }, ({ payload }) => {
+    if (payload.to !== deviceId) return;
+    const cb = pendingPings[payload.pingId];
+    if (cb) cb(payload);
+  });
+
   channel.subscribe(async status => {
     if (status === 'SUBSCRIBED') { try { await channel.track({ deviceId, at: Date.now() }); } catch(e){} }
   });
 }
+
+/* ============================================================
+   CLOCK SYNC — measure my offset vs the peer's clock (NTP-style)
+   ============================================================ */
+async function runSync() {
+  if (!sb || !channel || presentIds.length < 2 || syncing) return;
+  syncing = true;
+  let best = null;                              // { rtt, offset } with the LOWEST rtt
+  for (let i = 0; i < 5; i++) {
+    const s = await pingOnce();
+    if (s && (!best || s.rtt < best.rtt)) best = s;
+    await sleep(120);                           // small gap so samples don't collide
+  }
+  syncing = false;
+
+  // Guard rail: too noisy or failed → fall back to the raw shared timestamp.
+  if (!best || best.rtt > 1500) {
+    peerClockOffset = 0; clockSynced = false; syncedPeer = null;
+    console.warn('[photobooth] clock sync failed/too noisy (best rtt ' +
+      (best ? Math.round(best.rtt) : 'n/a') + 'ms) — using raw shared timestamp');
+    return;
+  }
+  // best.offset is the NTP offset = (peerClock - myClock). We store the value to
+  // ADD to a peer timestamp to get my clock, which is the negation.
+  peerClockOffset = -best.offset;
+  clockSynced = true;
+  console.log('[photobooth] clock synced — rtt ' + Math.round(best.rtt) +
+    'ms, peerClockOffset ' + Math.round(peerClockOffset) + 'ms');
+}
+
+// One ping/pong round trip → { rtt, offset } (offset = peerClock - myClock), or null on timeout.
+function pingOnce() {
+  return new Promise(resolve => {
+    const pingId = 'p_' + Math.random().toString(36).slice(2, 9);
+    let done = false;
+    const finish = v => { if (!done) { done = true; delete pendingPings[pingId]; resolve(v); } };
+    pendingPings[pingId] = pong => {
+      const now = Date.now();                                   // T4 (my clock)
+      const rtt = now - pong.tSent;                             // T4 - T1
+      // NTP offset = ((T2 - T1) + (T3 - T4)) / 2  = peerClock - myClock
+      const offset = ((pong.tReceived - pong.tSent) + (pong.tReplied - now)) / 2;
+      finish({ rtt, offset });
+    };
+    channel.send({ type: 'broadcast', event: 'time_ping', payload: {
+      pingId: pingId, tSent: Date.now(), from: deviceId        // T1 (my clock)
+    }});
+    setTimeout(() => finish(null), 1500);                       // per-ping timeout
+  });
+}
+
+/* Unit-style sanity check for the offset SIGN (runs once at load; dev aid only).
+   Scenario: MY clock runs 500ms BEHIND the peer's, i.e. peerClock = myClock + 500,
+   with a symmetric 40ms one-way network delay. */
+(function verifyOffsetSign() {
+  const T1 = 1000;                 // I send at my-clock 1000
+  const T2 = T1 + 40 + 500;        // peer receives: +delay +skew = 1540 (peer clock)
+  const T3 = T2;                   // peer replies instantly (peer clock)
+  const T4 = T3 - 500 + 40;        // I receive: back to my clock (-skew) +delay = 1080
+  const ntpOffset = ((T2 - T1) + (T3 - T4)) / 2;   // expect +500 (peerClock - myClock)
+  const stored = -ntpOffset;                        // what we store (myClock - peerClock)
+  const startAt_peerClock = 5000;                   // a start instant in the PEER's clock
+  const localStartAt = startAt_peerClock + stored;  // convert to MY clock
+  console.assert(Math.round(ntpOffset) === 500, '[photobooth] NTP offset should be +500 (peer ahead)');
+  // My clock is 500ms behind, so the same instant reads 4500 on my clock:
+  console.assert(Math.round(localStartAt) === 4500, '[photobooth] localStartAt should be 4500 (my clock)');
+})();
 function updatePresence() {
   if (mode !== 'together') return;
   if (!sb) { setStatus('add supabase to sync — or use solo'); return; }
@@ -590,6 +695,11 @@ function onStart(payload) {
 function beginSession(payload) {
   session = Object.assign({ active: true }, payload);
   myFrames = [];
+  // payload.startAt is in the INITIATOR's clock. If that's me (solo, or I pressed
+  // start), it's already my clock. Otherwise convert peer-clock → my clock by
+  // adding peerClockOffset (0 when unsynced → falls back to the raw timestamp).
+  const isInitiator = session.initiator === deviceId;
+  session.localStartAt = isInitiator ? session.startAt : session.startAt + peerClockOffset;
   el('shutter').disabled = true;
   runCountdown();
 }
@@ -598,16 +708,25 @@ function beginSession(payload) {
    COUNTDOWN + CAPTURE (both devices, same shared clock)
    ============================================================ */
 function runCountdown() {
+  // All snap times derive from the CLOCK-CORRECTED start, so both devices fire
+  // simultaneously even with skewed clocks.
+  const base = session.localStartAt;
   const snaps = [];
-  for (let i = 0; i < FRAMES; i++) snaps.push(session.startAt + i * SNAP_GAP);
+  for (let i = 0; i < FRAMES; i++) snaps.push(base + i * SNAP_GAP);
   el('counter').classList.add('show');
   let idx = 0, lastShown = null;
+  const mySession = session;   // bind: a reset/new session must cancel this tick
 
-  const tick = setInterval(() => {
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(() => {
+    // If the booth was reset or a new session started, abandon this tick cleanly.
+    if (session !== mySession) { clearInterval(countdownTimer); return; }
     const now = Date.now();
-    if (idx >= FRAMES) { clearInterval(tick); return; }
+    if (idx >= FRAMES) { clearInterval(countdownTimer); return; }
     const remain = Math.ceil((snaps[idx] - now) / 1000);
-    const label = remain > 0 ? String(remain) : '';
+    // Clamp the DISPLAY to 3..2..1 on both screens — never show 4/5. A late joiner
+    // with only 2s left simply shows 2..1.
+    const label = (remain > 0 && remain <= 3) ? String(remain) : '';
     if (label !== lastShown) {   // re-trigger the pop animation on change
       const span = el('count-num');
       span.textContent = label;
@@ -617,7 +736,7 @@ function runCountdown() {
     if (now >= snaps[idx]) {
       snap();
       idx++;
-      if (idx >= FRAMES) { clearInterval(tick); el('counter').classList.remove('show'); onCaptured(); }
+      if (idx >= FRAMES) { clearInterval(countdownTimer); el('counter').classList.remove('show'); onCaptured(); }
     }
   }, 80);
 }
@@ -644,6 +763,7 @@ function snap() {
    AFTER CAPTURE → upload / wait / compose
    ============================================================ */
 async function onCaptured() {
+  if (!session) return;   // session was reset mid-flight — nothing to compose
   el('shutter').disabled = false;
 
   // Solo, or Supabase not configured → compose locally from my frames.
@@ -880,6 +1000,7 @@ function closeLightbox() {
    RESET
    ============================================================ */
 function resetBooth() {
+  clearInterval(countdownTimer);   // cancel any in-flight countdown
   session = null;
   myFrames = [];
   lastResult = null;
