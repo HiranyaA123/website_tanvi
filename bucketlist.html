@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bucket list · for you ♡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ---- shared design system (matches index.html / photobooth.html) ---- */
+  :root {
+    --night:#1a1129; --night-2:#251636; --plum:#3b2147;
+    --coral:#f0846a; --sunset:#f4a261; --rose:#e76f51;
+    --cream:#f4ede4; --cream-dim:#d9cfc1; --sage:#a8b89e;
+    --line:rgba(244,237,228,0.12); --line-strong:rgba(244,237,228,0.25);
+    --serif:'Fraunces','Times New Roman',serif;
+    --sans:'Manrope',system-ui,sans-serif;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { scroll-behavior:smooth; }
+  body {
+    background:var(--night); color:var(--cream);
+    font-family:var(--sans); line-height:1.5;
+    overflow-x:hidden; min-height:100vh;
+  }
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none;
+    z-index:999; opacity:0.04;
+    background-image:url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/></svg>");
+  }
+
+  /* ---- nav (shared pattern) ---- */
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    padding:1.2rem 2.5rem; display:flex;
+    justify-content:space-between; align-items:center;
+    background:rgba(26,17,41,0.7);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--line);
+  }
+  nav .brand {
+    font-family:var(--serif); font-style:italic; font-weight:400;
+    font-size:1.15rem; color:var(--cream); letter-spacing:0.02em;
+    text-decoration:none;
+  }
+  nav .brand span { color:var(--coral); }
+  nav ul { display:flex; gap:2.2rem; list-style:none; }
+  nav ul a {
+    color:var(--cream-dim); text-decoration:none; font-size:0.82rem;
+    font-weight:500; letter-spacing:0.12em; text-transform:uppercase;
+    transition:color 0.3s ease; position:relative;
+  }
+  nav ul a:hover { color:var(--coral); }
+  nav ul a::after {
+    content:''; position:absolute; left:0; bottom:-4px;
+    width:0; height:1px; background:var(--coral); transition:width 0.3s ease;
+  }
+  nav ul a:hover::after { width:100%; }
+  nav ul a.active { color:var(--coral); }
+  nav ul a.active::after { width:100%; }
+  @media (max-width:720px) {
+    nav { padding:1rem 1.2rem; flex-direction:column; gap:0.7rem; }
+    nav ul { gap:1.2rem; flex-wrap:wrap; justify-content:center; }
+    nav ul a { font-size:0.7rem; }
+  }
+
+  section {
+    min-height:100vh; padding:8rem 1.5rem 6rem; position:relative;
+    background:
+      radial-gradient(ellipse at 18% 12%, rgba(240,132,106,0.13), transparent 55%),
+      radial-gradient(ellipse at 84% 90%, rgba(244,162,97,0.10), transparent 55%),
+      var(--night-2);
+  }
+  .section-label {
+    font-size:0.7rem; font-weight:600; letter-spacing:0.35em;
+    text-transform:uppercase; color:var(--sunset); margin-bottom:1rem;
+    display:block; text-align:center;
+  }
+  .section-title {
+    font-family:var(--serif); font-weight:300; font-style:italic;
+    font-size:clamp(2.2rem,5vw,3.6rem); letter-spacing:-0.02em;
+    color:var(--cream); line-height:1.05; text-align:center;
+    margin-bottom:0.6rem;
+  }
+
+  /* ---- bucket list ---- */
+  .bucket-wrap { max-width:640px; margin:0 auto; }
+  .bucket-count {
+    text-align:center; font-family:var(--serif); font-style:italic;
+    color:var(--cream-dim); font-size:0.98rem; margin-bottom:2.6rem;
+    letter-spacing:0.01em; min-height:1.2rem;
+  }
+
+  /* add-item row */
+  .add-row { display:flex; gap:0.6rem; margin-bottom:0.4rem; }
+  .add-input {
+    flex:1; background:transparent; border:1px solid var(--line);
+    border-radius:8px; color:var(--cream);
+    font-family:var(--serif); font-style:italic;
+    font-size:clamp(1.05rem,2.5vw,1.35rem);
+    padding:0.85rem 1.1rem; text-align:center; outline:none;
+    transition:border-color 0.3s ease;
+  }
+  .add-input::placeholder { color:var(--cream-dim); opacity:0.55; }
+  .add-input:focus { border-color:var(--coral); }
+  .add-btn {
+    background:transparent; border:1px solid var(--line-strong);
+    color:var(--coral); width:50px; border-radius:8px;
+    font-size:1.5rem; line-height:1; cursor:pointer;
+    font-family:var(--sans); transition:all 0.3s ease;
+  }
+  .add-btn:hover { background:var(--coral); color:var(--night); border-color:var(--coral); }
+
+  .bucket-list {
+    margin-top:1.6rem; display:flex; flex-direction:column;
+    border-top:1px solid var(--line);
+  }
+  .item {
+    position:relative;
+    padding:1.5rem 3.4rem;
+    border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; gap:1rem;
+    font-family:var(--serif); font-style:italic; font-weight:300;
+    font-size:clamp(1.3rem,3vw,1.85rem); color:var(--cream);
+    transition:color 0.4s ease, transform 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+  .item.enter { animation:itemIn 0.45s ease; }
+  @keyframes itemIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
+
+  .item .marker {
+    color:var(--coral); font-size:0.9rem; font-style:normal;
+    transition:transform 0.4s ease, color 0.3s ease, opacity 0.3s ease;
+  }
+  .item:hover:not(.done) { color:var(--sunset); }
+  .item:hover:not(.done) .marker { transform:rotate(180deg) scale(1.2); color:var(--sunset); }
+
+  .item .txt { position:relative; }
+  /* the coral strike line that draws across on "done" */
+  .item .txt::after {
+    content:''; position:absolute; left:-2%; top:56%;
+    width:0; height:2px; background:var(--coral); border-radius:2px;
+    transition:width 0.5s ease; pointer-events:none;
+  }
+  .item.done .txt::after { width:104%; }
+  .item.preset .txt::after { transition:none; }   /* no draw for items already done on load */
+  .item.done { color:var(--cream-dim); }
+  .item.done .marker { color:var(--cream-dim); opacity:0.45; }
+
+  /* per-item controls (revealed on hover / focus) */
+  .item .ctrls {
+    position:absolute; right:0.7rem; top:50%; transform:translateY(-50%);
+    display:flex; gap:0.4rem; opacity:0; transition:opacity 0.3s ease;
+  }
+  .item:hover .ctrls, .item:focus-within .ctrls { opacity:1; }
+  .item .ctrl {
+    background:transparent; border:1px solid var(--line); color:var(--cream-dim);
+    width:30px; height:30px; border-radius:50%; cursor:pointer;
+    font-size:0.8rem; line-height:1; padding:0; font-family:var(--sans);
+    display:flex; align-items:center; justify-content:center;
+    transition:background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+  }
+  .item .ctrl.done:hover { background:var(--sage);   border-color:var(--sage);   color:var(--night); }
+  .item .ctrl.del:hover  { background:var(--rose);   border-color:var(--rose);   color:var(--night); }
+  .item .ctrl.undo:hover { background:var(--sunset); border-color:var(--sunset); color:var(--night); }
+  /* show only the controls relevant to the item's state */
+  .item:not(.done) .ctrl.undo { display:none; }
+  .item.done .ctrl.done,
+  .item.done .ctrl.del { display:none; }
+
+  .bucket-msg {
+    margin-top:2.4rem; text-align:center; color:var(--cream-dim);
+    font-family:var(--serif); font-style:italic; font-size:1.1rem;
+  }
+
+  footer {
+    text-align:center; padding:3rem 2rem; background:var(--night);
+    border-top:1px solid var(--line); font-family:var(--serif);
+    font-style:italic; color:var(--cream-dim); font-size:0.95rem;
+  }
+  footer .heart { color:var(--coral); }
+</style>
+</head>
+<body>
+
+<!-- ===== NAV (shared) ===== -->
+<nav>
+  <a class="brand" href="index.html">for <span>you</span>, from me</a>
+  <ul>
+    <li><a href="index.html#home">Home</a></li>
+    <li><a href="index.html#story">Our Story</a></li>
+    <li><a href="index.html#photos">Photos</a></li>
+    <li><a href="bucketlist.html" class="active">Bucket List</a></li>
+    <li><a href="photobooth.html">Photobooth</a></li>
+  </ul>
+</nav>
+
+<!-- ===== BUCKET LIST ===== -->
+<section id="bucket">
+  <div class="bucket-wrap">
+    <span class="section-label">someday, us</span>
+    <h2 class="section-title">bucket list.</h2>
+    <div class="bucket-count" id="bucket-count"></div>
+
+    <div class="add-row">
+      <input class="add-input" id="add-input" maxlength="200"
+             placeholder="add something for us…" aria-label="add a bucket list item" autocomplete="off" />
+      <button class="add-btn" id="add-btn" aria-label="add">+</button>
+    </div>
+
+    <div class="bucket-list" id="bucket-list"></div>
+    <div class="bucket-msg" id="bucket-msg" hidden></div>
+  </div>
+</section>
+
+<footer>
+  made with <span class="heart">♡</span> · one day at a time
+</footer>
+
+<!-- the one allowed dependency -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================================================
+   BUCKET LIST — shared + editable via Supabase (no PIN, fully open)
+   Reuses the same config constants pattern as photobooth.html.
+   Optimistic local UI + Realtime postgres_changes for live sync.
+   ============================================================ */
+
+/* ---- CONFIG (same values as photobooth.html) ---- */
+const SUPABASE_URL      = 'https://fwttgzkmguvwwmeehdea.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_DjaMEHaadF0NNmMozllCdw_LrktMLQp';
+
+const hasSupabase =
+  SUPABASE_URL && SUPABASE_ANON_KEY &&
+  SUPABASE_URL !== 'PASTE_URL_HERE' &&
+  SUPABASE_ANON_KEY !== 'PASTE_ANON_KEY_HERE' &&
+  window.supabase;
+const sb = hasSupabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+/* ---- state ---- */
+let items = [];                 // {id, text, done, created_at, done_at}
+const elMap = new Map();        // id -> persistent DOM element (enables FLIP + keeps strike drawn)
+let animating = false;          // suppress reorder/refetch mid strike-through
+let errored = false;
+let refetchTimer = null, pendingRefetch = false;
+
+const $ = id => document.getElementById(id);
+
+/* ---- data helpers ---- */
+function normalize(row) {
+  return { id: row.id, text: row.text, done: !!row.done, created_at: row.created_at, done_at: row.done_at };
+}
+// not-done first (created_at asc), then done at the bottom (done_at asc)
+function sortItems(list) {
+  const active = list.filter(i => !i.done)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const done = list.filter(i => i.done)
+    .sort((a, b) => new Date(a.done_at || 0) - new Date(b.done_at || 0));
+  return active.concat(done);
+}
+
+/* ============================================================
+   FETCH + RENDER
+   ============================================================ */
+async function fetchAndRender() {
+  if (!sb) { errored = true; showMsg('this list needs a connection — check back in a bit ♡'); return; }
+  try {
+    const { data, error } = await sb.from('bucket_items').select('*');
+    if (error) throw error;
+    errored = false;
+    const temps = items.filter(i => String(i.id).startsWith('tmp_'));   // keep unsynced optimistic adds
+    items = data.map(normalize).concat(temps);
+    render();
+  } catch (e) {
+    console.warn('[bucket] fetch failed', e);
+    errored = true;
+    if (!items.length) showMsg('couldn\'t reach our list right now — try again in a moment ♡');
+  }
+}
+
+function makeEl(item) {
+  const el = document.createElement('div');
+  el.className = 'item enter';
+  el.dataset.id = item.id;
+  el.innerHTML =
+    '<span class="marker">✦</span>' +
+    '<span class="txt"></span>' +
+    '<span class="ctrls">' +
+      '<button class="ctrl done" title="done" aria-label="mark done">✓</button>' +
+      '<button class="ctrl undo" title="undo" aria-label="undo">↩</button>' +
+      '<button class="ctrl del"  title="delete" aria-label="delete">✕</button>' +
+    '</span>';
+  el.querySelector('.txt').textContent = item.text;
+  el.querySelector('.done').addEventListener('click', e => { e.stopPropagation(); onDone(item.id); });
+  el.querySelector('.undo').addEventListener('click', e => { e.stopPropagation(); onUndo(item.id); });
+  el.querySelector('.del').addEventListener('click',  e => { e.stopPropagation(); onDelete(item.id); });
+  return el;
+}
+
+function render() {
+  const list = $('bucket-list');
+  const order = sortItems(items);
+
+  // FLIP step 1: remember where every existing element is now
+  const oldRects = new Map();
+  elMap.forEach((el, id) => oldRects.set(id, el.getBoundingClientRect()));
+
+  const seen = new Set();
+  order.forEach(item => {
+    seen.add(item.id);
+    let el = elMap.get(item.id);
+    const isNew = !el;
+    if (isNew) { el = makeEl(item); elMap.set(item.id, el); }
+    el.querySelector('.txt').textContent = item.text;
+    el.dataset.id = item.id;
+    if (item.done) {
+      if (!el.classList.contains('done')) {
+        if (isNew) el.classList.add('preset');   // already-done on load → no draw animation
+        el.classList.add('done');
+      }
+    } else {
+      el.classList.remove('done');
+    }
+    list.appendChild(el);   // append = move existing node into the right order
+  });
+
+  // drop removed items
+  elMap.forEach((el, id) => { if (!seen.has(id)) { el.remove(); elMap.delete(id); } });
+
+  updateCounter();
+  // empty / error messaging (never a blank page)
+  if (!errored) {
+    if (order.length === 0) showMsg('nothing here yet — add the first thing ♡');
+    else hideMsg();
+  }
+
+  // FLIP step 2 + cleanup, next frame
+  requestAnimationFrame(() => {
+    elMap.forEach(el => { el.classList.remove('preset'); el.classList.remove('enter'); });
+    elMap.forEach((el, id) => {
+      const o = oldRects.get(id); if (!o) return;      // brand-new items just fade in
+      const n = el.getBoundingClientRect();
+      const dy = o.top - n.top;
+      if (Math.abs(dy) < 1) return;
+      el.style.transition = 'none';
+      el.style.transform = 'translateY(' + dy + 'px)';
+      requestAnimationFrame(() => { el.style.transition = ''; el.style.transform = ''; });
+    });
+  });
+}
+
+function updateCounter() {
+  const done = items.filter(i => i.done).length;
+  const togo = items.length - done;
+  $('bucket-count').textContent = togo + ' to go · ' + done + ' done';
+}
+function showMsg(t) { const m = $('bucket-msg'); m.textContent = t; m.hidden = false; }
+function hideMsg() { $('bucket-msg').hidden = true; }
+
+/* ============================================================
+   ACTIONS (optimistic local update → persist → realtime reconciles)
+   ============================================================ */
+async function addItem() {
+  const inp = $('add-input');
+  let text = inp.value.trim();
+  if (!text) return;
+  if (text.length > 200) text = text.slice(0, 200);
+  inp.value = '';
+
+  const tmp = { id: 'tmp_' + Math.random().toString(36).slice(2, 9), text,
+    done: false, created_at: new Date().toISOString(), done_at: null };
+  items.push(tmp);
+  render();
+  if (!sb) return;
+  try {
+    const { data, error } = await sb.from('bucket_items').insert({ text }).select().single();
+    if (error) throw error;
+    const idx = items.findIndex(i => i.id === tmp.id);
+    if (idx >= 0) items[idx] = normalize(data); else items.push(normalize(data));
+    render();
+  } catch (e) {
+    console.warn('[bucket] insert failed', e);
+    items = items.filter(i => i.id !== tmp.id);     // rollback
+    render();
+    showMsg('couldn\'t save that just now — try again ♡');
+    setTimeout(() => { if (!errored) hideMsg(); }, 3000);
+  }
+}
+
+function onDone(id) {
+  const item = items.find(i => i.id === id);
+  const el = elMap.get(id);
+  if (!item || item.done || !el) return;
+  animating = true;
+  el.classList.add('done');                          // draws the coral line + dims (element persists)
+  item.done = true; item.done_at = new Date().toISOString();
+  updateCounter();
+  persistDone(id, true, item.done_at);
+  // let the strike finish, THEN slide it down to the done group
+  setTimeout(() => { animating = false; render(); flushPending(); }, 540);
+}
+
+function onUndo(id) {
+  const item = items.find(i => i.id === id);
+  if (!item || !item.done) return;
+  item.done = false; item.done_at = null;
+  render();                                          // FLIP moves it up; line retracts
+  persistDone(id, false, null);
+}
+
+function onDelete(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  if (!confirm('remove this one?')) return;
+  items = items.filter(i => i.id !== id);
+  render();
+  persistDelete(id);
+}
+
+async function persistDone(id, done, done_at) {
+  if (!sb || String(id).startsWith('tmp_')) return;
+  const { error } = await sb.from('bucket_items').update({ done, done_at }).eq('id', id);
+  if (error) console.warn('[bucket] update failed', error);
+}
+async function persistDelete(id) {
+  if (!sb || String(id).startsWith('tmp_')) return;
+  const { error } = await sb.from('bucket_items').delete().eq('id', id);
+  if (error) console.warn('[bucket] delete failed', error);
+}
+
+/* ============================================================
+   REALTIME (live sync between both of us)
+   ============================================================ */
+function scheduleRefetch() {
+  if (animating) { pendingRefetch = true; return; }   // don't interrupt a strike animation
+  clearTimeout(refetchTimer);
+  refetchTimer = setTimeout(fetchAndRender, 250);
+}
+function flushPending() { if (pendingRefetch) { pendingRefetch = false; scheduleRefetch(); } }
+
+function subscribeRealtime() {
+  if (!sb) return;
+  sb.channel('bucket-list-rt')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'bucket_items' }, () => scheduleRefetch())
+    .subscribe();
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  $('add-btn').addEventListener('click', addItem);
+  $('add-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addItem(); }
+  });
+  fetchAndRender();
+  subscribeRealtime();
+});
+</script>
+</body>
+</html>

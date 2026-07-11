@@ -98,3 +98,49 @@ create policy "strips delete"
 --    (No need to add the strips table to a publication; the
 --     gallery just reads it over the normal REST API.)
 -- ------------------------------------------------------------
+
+
+-- ============================================================
+-- 4. BUCKET LIST  (shared, fully open — powers bucketlist.html)
+--    No PIN; anyone with the page can read/add/tick/delete items.
+--    Accepted trade-off for a private gift site.
+-- ============================================================
+create table if not exists bucket_items (
+  id uuid primary key default gen_random_uuid(),
+  text text not null check (char_length(text) between 1 and 200),
+  done boolean not null default false,
+  created_at timestamptz not null default now(),
+  done_at timestamptz
+);
+alter table bucket_items enable row level security;
+
+drop policy if exists "anon read"   on bucket_items;
+drop policy if exists "anon insert" on bucket_items;
+drop policy if exists "anon update" on bucket_items;
+drop policy if exists "anon delete" on bucket_items;
+create policy "anon read"   on bucket_items for select to anon using (true);
+create policy "anon insert" on bucket_items for insert to anon with check (true);
+create policy "anon update" on bucket_items for update to anon using (true);
+create policy "anon delete" on bucket_items for delete to anon using (true);
+
+-- Realtime (postgres_changes) — the page subscribes so edits appear live on
+-- both screens. This requires the table in the supabase_realtime publication.
+-- Idempotent so re-running the file is safe.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'bucket_items'
+  ) then
+    execute 'alter publication supabase_realtime add table bucket_items';
+  end if;
+end $$;
+
+-- Seed with the current list (only if the table is empty).
+insert into bucket_items (text)
+select v.text
+from (values ('Traveling together'), ('Concert'), ('Photobooth')) as v(text)
+where not exists (select 1 from bucket_items);
+
