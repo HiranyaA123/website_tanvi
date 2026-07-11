@@ -191,16 +191,32 @@
     font-family:var(--serif); font-style:italic; font-size:1.5rem;
     color:var(--cream);
   }
+  /* Masonry columns (matches .photos-grid on index.html) so solo (tall) and
+     together (wide) strips pack by their natural aspect ratio — no shared
+     row heights, no gaps below shorter cards. */
   .gallery {
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
-    gap:1.2rem; max-width:820px; margin:0 auto;
+    column-count: 4;
+    column-gap: 14px;
+    max-width: 980px;
+    margin: 0 auto;
   }
+  @media (max-width:1100px) { .gallery { column-count: 3; } }
+  @media (max-width:800px)  { .gallery { column-count: 2; } }
+  @media (max-width:500px)  { .gallery { column-count: 1; } }
   .gcard {
-    position:relative; border-radius:4px; overflow:hidden;
-    box-shadow:0 8px 26px rgba(0,0,0,0.45);
+    position: relative;
+    width: 100%;
+    break-inside: avoid;
+    margin-bottom: 14px;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 8px 26px rgba(0,0,0,0.45);
   }
-  .gcard img { width:100%; display:block; cursor:zoom-in;
-    transition:transform 0.4s ease; }
+  /* Image renders at its natural aspect ratio — no fixed height / cropping. */
+  .gcard img {
+    width: 100%; height: auto; display: block; cursor: zoom-in;
+    transition: transform 0.4s ease;
+  }
   .gcard:hover img { transform:scale(1.03); }
   .gactions {
     position:absolute; left:0; right:0; bottom:0;
@@ -218,7 +234,7 @@
   .gactions button:hover { color:var(--coral); }
   .gactions button[data-act="del"]:hover { color:var(--rose); }
   .muted {
-    grid-column:1/-1; text-align:center; color:var(--cream-dim);
+    column-span:all; text-align:center; color:var(--cream-dim);
     font-family:var(--serif); font-style:italic; font-size:1.05rem;
   }
 
