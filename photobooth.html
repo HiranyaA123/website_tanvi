@@ -7,6 +7,61 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+<!-- ============================================================
+     PASSCODE GATE — shared snippet, identical on index.html,
+     photobooth.html and bucketlist.html. Runs before the page
+     paints, so the gate never flashes and the content never
+     shows through it.
+     ============================================================ -->
+<script>
+/* The passcode itself is NEVER in the source — only its SHA-256 hash.
+
+   TO CHANGE THE PASSCODE:
+     1. Open the site, open the browser console, and paste this:
+
+          async function sha256(str) {
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+            return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+          }
+          await sha256('newcode')
+
+     2. Replace PASS_HASH below with the hex string it prints.
+     3. Set PASS_LEN to the number of characters in the new code.
+     4. Repeat in all three pages — this block is identical in each.
+
+   Devices that remembered the OLD code relock themselves: what's stored in
+   localStorage IS the old hash, so it stops matching PASS_HASH. */
+const PASS_HASH = '120e90dfb21d132a40c6281f8c8f25331969559e200f589bfe8e775e333b5b3a';
+const PASS_LEN  = 4;              // characters in the code — the field submits itself at this length
+const GATE_KEY  = 'ldr_unlocked'; // localStorage key: remembers this device across visits
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function gateUnlocked() {
+  try { return localStorage.getItem(GATE_KEY) === PASS_HASH; } catch (e) { return false; }
+}
+function gateRemember() {
+  try { localStorage.setItem(GATE_KEY, PASS_HASH); } catch (e) { /* private mode — unlock this visit only */ }
+  document.documentElement.classList.add('unlocked');
+}
+async function gateCheck(value) {
+  try { return (await sha256(String(value).trim())) === PASS_HASH; } catch (e) { return false; }
+}
+/* Wrong code: shake, flash coral, clear. No error text. */
+function gateShake(input) {
+  input.value = '';
+  input.classList.remove('shake');
+  void input.offsetWidth;                 // reflow, so the animation restarts on a repeat wrong code
+  input.classList.add('shake');
+  input.addEventListener('animationend', () => input.classList.remove('shake'), { once: true });
+  input.focus();
+}
+if (gateUnlocked()) document.documentElement.classList.add('unlocked');
+</script>
+
 <style>
   /* ---- shared design system (matches index.html) ---- */
   :root {
@@ -238,39 +293,51 @@
     font-family:var(--serif); font-style:italic; font-size:1.05rem;
   }
 
-  /* ---- PIN gate ---- */
-  .pin-gate {
+  /* ---- passcode gate (same look as the splash on index.html) ----
+     The overlay sits in the initial HTML so no content flashes behind it;
+     it's hidden pre-paint on an unlocked device and removed on success. */
+  .gate {
     position:fixed; inset:0; z-index:2000; display:flex;
     align-items:center; justify-content:center;
-    background:radial-gradient(ellipse at 50% 50%, rgba(240,132,106,0.16), transparent 60%),
+    background:radial-gradient(ellipse at 50% 50%, rgba(240,132,106,0.18), transparent 60%),
       linear-gradient(135deg, var(--night), var(--plum));
-    transition:opacity 0.7s ease, visibility 0.7s ease;
   }
-  .pin-gate.hide { opacity:0; visibility:hidden; pointer-events:none; }
-  .pin-inner { text-align:center; padding:2rem; width:min(360px,90vw); }
-  .pin-heart { font-size:3rem; color:var(--coral); margin-bottom:1rem; }
-  .pin-inner h1 {
-    font-family:var(--serif); font-style:italic; font-weight:300;
-    font-size:1.6rem; color:var(--cream); margin-bottom:1.6rem;
+  html.unlocked .gate { display:none; }
+  .gate-inner { text-align:center; padding:2rem; }
+  .gate-heart {
+    font-size:3.4rem; color:var(--coral); line-height:1; margin-bottom:1.6rem;
+    animation:gate-heartbeat 1.4s ease-in-out infinite;
   }
-  .pin-inner input {
-    width:100%; text-align:center; padding:0.9rem 1rem;
-    background:rgba(244,237,228,0.06); border:1px solid var(--line-strong);
-    border-radius:6px; color:var(--cream); font-family:var(--serif);
-    font-size:1.4rem; letter-spacing:0.5em; outline:none;
-    transition:border-color 0.3s ease;
+  @keyframes gate-heartbeat {
+    0%, 100% { transform:scale(1); }
+    25%      { transform:scale(1.15); }
+    50%      { transform:scale(1); }
+    75%      { transform:scale(1.08); }
   }
-  .pin-inner input:focus { border-color:var(--coral); }
-  .pin-inner button {
-    margin-top:1rem; width:100%; padding:0.85rem; border-radius:6px;
-    border:none; background:var(--coral); color:var(--night);
-    font-family:var(--sans); font-weight:600; letter-spacing:0.14em;
-    text-transform:uppercase; font-size:0.8rem; cursor:pointer;
-    transition:background 0.3s ease;
+  .gate-input {
+    width:min(220px,70vw); padding:0.7rem 1rem;
+    background:transparent; border:1px solid var(--line); border-radius:4px;
+    color:var(--cream); font-family:var(--serif); font-style:italic;
+    font-size:1.15rem; text-align:center;
+    letter-spacing:0.4em; text-indent:0.4em;   /* text-indent offsets the trailing letter-space */
+    outline:none; transition:border-color 0.45s ease, box-shadow 0.45s ease;
   }
-  .pin-inner button:hover { background:var(--sunset); }
-  .pin-err { color:var(--rose); font-size:0.85rem; margin-top:0.8rem; min-height:1.2rem;
-    font-family:var(--serif); font-style:italic; }
+  .gate-input::placeholder {
+    color:var(--cream-dim); opacity:0.55; font-style:italic;
+    letter-spacing:0.06em; text-indent:0;
+  }
+  .gate-input:focus { border-color:var(--coral); }
+  .gate-input.shake {
+    border-color:var(--coral); box-shadow:0 0 0 2px rgba(240,132,106,0.25);
+    animation:gate-shake 0.45s ease;
+  }
+  @keyframes gate-shake {
+    0%, 100% { transform:translateX(0); }
+    20%      { transform:translateX(-7px); }
+    40%      { transform:translateX(7px); }
+    60%      { transform:translateX(-4px); }
+    80%      { transform:translateX(4px); }
+  }
 
   /* ---- lightbox (matches index.html) ---- */
   .lightbox {
@@ -316,17 +383,13 @@
 </head>
 <body>
 
-<!-- ===== PIN GATE ===== -->
-<div class="pin-gate" id="pin-gate">
-  <div class="pin-inner">
-    <div class="pin-heart">♡</div>
-    <h1>our pin</h1>
-    <form id="pin-form" autocomplete="off">
-      <input id="pin-input" inputmode="numeric" maxlength="8" aria-label="our pin" placeholder="••••" />
-      <button type="submit">enter</button>
-      <div class="pin-err" id="pin-err"></div>
-    </form>
-  </div>
+<!-- ===== PASSCODE GATE (in the initial HTML — never injected, so nothing flashes) ===== -->
+<div class="gate" id="gate">
+  <form class="gate-inner" id="gate-form" autocomplete="off">
+    <div class="gate-heart">♡</div>
+    <input class="gate-input" id="gate-input" type="password" inputmode="numeric"
+           placeholder="our code" aria-label="our code" autocomplete="off" />
+  </form>
 </div>
 
 <!-- ===== NAV (shared) ===== -->
@@ -409,7 +472,6 @@
 const SUPABASE_URL      = 'https://fwttgzkmguvwwmeehdea.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_DjaMEHaadF0NNmMozllCdw_LrktMLQp';
 
-const PIN   = '2603';               // our pin (change me)
 const BUCKET = 'strips';            // public storage bucket
 const ROOM   = 'photobooth-room';   // realtime channel
 
@@ -458,7 +520,9 @@ const pendingPings = {};   // pingId -> callback(pongPayload)
 const el = id => document.getElementById(id);
 
 /* ============================================================
-   BOOTSTRAP + PIN
+   BOOTSTRAP + PASSCODE GATE
+   The gate is the site-wide one (see the shared snippet in <head>).
+   One unlock anywhere — index, here, bucket list — unlocks the lot.
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
   // lightbox
@@ -467,26 +531,29 @@ document.addEventListener('DOMContentLoaded', () => {
   lb.querySelector('.lb-close').addEventListener('click', closeLightbox);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
-  // pin
-  if (sessionStorage.getItem('pb_ok') === '1') { openBooth(); }
-  el('pin-form').addEventListener('submit', e => {
-    e.preventDefault();
-    const val = el('pin-input').value.trim();
-    if (val === PIN) {
-      sessionStorage.setItem('pb_ok', '1');
-      el('pin-gate').classList.add('hide');
-      openBooth();
-    } else {
-      el('pin-err').textContent = 'not quite. try again ♡';
-      el('pin-input').value = '';
-      el('pin-input').focus();
-    }
-  });
+  // passcode gate
+  const gate  = el('gate');
+  const input = el('gate-input');
+  input.maxLength = PASS_LEN;
+
+  function unlock() { gate.remove(); openBooth(); }
+
+  async function tryCode() {
+    if (await gateCheck(input.value)) { gateRemember(); unlock(); }
+    else gateShake(input);
+  }
+
+  if (gateUnlocked()) {                  // already unlocked on this device — straight in
+    unlock();
+    return;
+  }
+  el('gate-form').addEventListener('submit', e => { e.preventDefault(); tryCode(); });
+  // Numeric keypads have no return key, so submit as soon as the code is long enough.
+  input.addEventListener('input', () => { if (input.value.length >= PASS_LEN) tryCode(); });
 });
 
 let boothOpened = false;
 function openBooth() {
-  el('pin-gate').classList.add('hide');
   if (boothOpened) return;
   boothOpened = true;
 
