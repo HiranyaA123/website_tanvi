@@ -334,6 +334,35 @@ if (gateUnlocked()) document.documentElement.classList.add('unlocked');
   }
   .hero-meta span { color: var(--coral); }
 
+  .apart-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0 0.45rem;
+    margin-top: 1.25rem;
+    position: relative;
+    z-index: 2;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--cream-dim);
+    max-width: 100%;
+  }
+  .apart-line .hours {
+    font-family: var(--serif);
+    font-style: normal;
+    font-weight: 300;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: var(--cream);
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(180deg, var(--cream) 0%, var(--sunset) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   /* ============================================================
      TIMELINE — polaroid scatter
      ============================================================ */
@@ -954,6 +983,10 @@ if (gateUnlocked()) document.documentElement.classList.add('unlocked');
     <span id="km">1,166</span> km between us right now
     &nbsp;·&nbsp; you're <span id="tz-diff">30 min</span> behind me
   </div>
+  <div class="apart-line">
+    <span class="hours" id="hours-apart">0</span>
+    <span>hours apart · every one of them worth it</span>
+  </div>
 </section>
 
 <!-- ===== TIMELINE ===== -->
@@ -1044,6 +1077,7 @@ if (gateUnlocked()) document.documentElement.classList.add('unlocked');
    EDIT THIS — when you're getting back
    ============================================================ */
 const RETURN_DATE = new Date('2026-07-04T18:00:00+09:30'); // 4 July, Adelaide time (+09:30 winter)
+const APART_SINCE = new Date('2026-03-26T00:00:00+10:30'); // 26 March, Adelaide time (+10:30 summer) — hours-apart counts up from here
 
 /* ============================================================
    COUNTDOWN
@@ -1060,6 +1094,10 @@ function updateCountdown() {
   document.getElementById('h').textContent = pad(hours);
   document.getElementById('m').textContent = pad(mins);
   document.getElementById('s').textContent = pad(secs);
+
+  // Hours apart, counting up — ticks over as soon as the hour completes
+  const hoursApart = Math.max(0, Math.floor((now - APART_SINCE) / 3600000));
+  document.getElementById('hours-apart').textContent = hoursApart.toLocaleString();
 
   // Poetic line changes with time left
   const poetic = document.getElementById('hero-poetic');
