@@ -423,7 +423,7 @@ if (gateUnlocked()) document.documentElement.classList.add('unlocked');
         <div class="counter" id="counter"><span id="count-num"></span></div>
       </div>
       <div class="status" id="status">—</div>
-      <button class="shutter" id="shutter" aria-label="take photos"><span></span></button>
+      <button class="shutter" id="shutter" aria-label="take photos" disabled><span></span></button>
       <div class="hint" id="hint">tap the shutter when you're ready</div>
     </div>
 
@@ -499,6 +499,9 @@ let mode = 'together';
 let stream = null;
 let channel = null;
 let presentIds = [];
+let channelConnected = false;
+let roomState = 'connecting'; // connecting | connected | error
+let roomTimer = null;
 let session = null;        // { id, startAt, initiator, active, solo }
 let myFrames = [];         // my captured canvases
 let lastResult = null;     // { canvas, id, mode, saved, path }
@@ -581,7 +584,8 @@ function openBooth() {
    CAMERA
    ============================================================ */
 async function startCamera() {
-  const v = el('preview'), msg = el('cam-msg');
+  const v = el('preview'), msg = el('cam-msg'), shutter = el('shutter');
+  shutter.disabled = true;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     msg.textContent = 'this browser can\'t open the camera 😕'; return;
   }
@@ -592,11 +596,22 @@ async function startCamera() {
     });
     v.srcObject = stream;
     v.setAttribute('playsinline', '');
-    await v.play().catch(()=>{});
+    await v.play();
+    if (!v.videoWidth || !v.videoHeight) {
+      await Promise.race([
+        new Promise(resolve => v.addEventListener('loadedmetadata', resolve, { once: true })),
+        sleep(3000)
+      ]);
+    }
+    if (!v.videoWidth || !v.videoHeight) throw new Error('camera did not become ready');
     msg.style.display = 'none';
+    shutter.disabled = false;
   } catch (err) {
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    stream = null;
     msg.style.display = 'flex';
     msg.textContent = 'i can\'t see the camera — allow camera access and refresh ♡';
+    shutter.disabled = true;
   }
 }
 
@@ -631,6 +646,9 @@ function applyModeUI() {
    ============================================================ */
 function joinRoom() {
   if (!sb || channel) return;
+  roomState = 'connecting';
+  channelConnected = false;
+  updatePresence();
   channel = sb.channel(ROOM, { config: { presence: { key: deviceId }, broadcast: { self: true } } });
   channel.on('presence', { event: 'sync' }, () => {
     presentIds = Object.keys(channel.presenceState());
@@ -665,8 +683,28 @@ function joinRoom() {
   });
 
   channel.subscribe(async status => {
-    if (status === 'SUBSCRIBED') { try { await channel.track({ deviceId, at: Date.now() }); } catch(e){} }
+    if (status === 'SUBSCRIBED') {
+      clearTimeout(roomTimer);
+      roomState = 'connected';
+      channelConnected = true;
+      if (mode === 'together') updatePresence();
+      try { await channel.track({ deviceId, at: Date.now() }); } catch(e){}
+      return;
+    }
+    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      clearTimeout(roomTimer);
+      roomState = 'error';
+      channelConnected = false;
+      presentIds = [];
+      if (mode === 'together') updatePresence();
+    }
   });
+  roomTimer = setTimeout(() => {
+    if (channelConnected) return;
+    roomState = 'error';
+    presentIds = [];
+    if (mode === 'together') updatePresence();
+  }, 12000);
 }
 
 /* ============================================================
@@ -737,6 +775,12 @@ function pingOnce() {
 function updatePresence() {
   if (mode !== 'together') return;
   if (!sb) { setStatus('add supabase to sync — or use solo'); return; }
+  if (!channelConnected) {
+    setStatus(roomState === 'error'
+      ? 'shared booth is offline — solo still works'
+      : 'connecting shared booth…');
+    return;
+  }
   if (presentIds.length >= 2) setStatus('<span class="present">she\'s here ♡</span>');
   else setStatus('waiting for her…');
 }
@@ -746,12 +790,17 @@ function updatePresence() {
    ============================================================ */
 function onShutter() {
   if (session && session.active) return;
+  const v = el('preview');
+  if (!stream || !stream.active || !v.videoWidth || !v.videoHeight) {
+    toast('camera isn\'t ready — allow access and refresh ♡');
+    return;
+  }
   if (mode === 'solo') {
     beginSession({ id: newId(), startAt: Date.now() + 900, initiator: deviceId, solo: true });
     return;
   }
   // together
-  if (!sb) { toast('together mode needs supabase — try solo ♡'); return; }
+  if (!sb || !channelConnected) { toast('shared booth is offline — try solo ♡'); return; }
   if (presentIds.length < 2) { toast('waiting for her to join…'); return; }
   channel.send({
     type: 'broadcast', event: 'start',
@@ -1040,7 +1089,11 @@ async function loadGallery() {
   const grid = el('gallery');
   if (!sb) { grid.innerHTML = '<p class="muted">connect supabase and your kept strips live here ♡</p>'; return; }
   const { data, error } = await sb.from('strips').select('*').order('created_at', { ascending: false });
-  if (error || !data || !data.length) {
+  if (error) {
+    grid.innerHTML = '<p class="muted">shared gallery is offline — solo photos still download ♡</p>';
+    return;
+  }
+  if (!data || !data.length) {
     grid.innerHTML = '<p class="muted">no strips yet — take one ♡</p>';
     return;
   }
@@ -1090,7 +1143,8 @@ function resetBooth() {
   pendingStarts = [];
   el('result-panel').hidden = true;
   el('stage-panel').hidden = false;
-  el('shutter').disabled = false;
+  const v = el('preview');
+  el('shutter').disabled = !stream || !stream.active || !v.videoWidth || !v.videoHeight;
   el('counter').classList.remove('show');
   applyModeUI();
 }
