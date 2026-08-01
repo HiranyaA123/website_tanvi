@@ -1,0 +1,9 @@
+# The originals stay on your machine. Only the encrypted copies in enc/
+# are ever published — committing these folders would undo the whole point.
+/photos/
+/gallery/
+/audio/
+
+# Keep a backup of the originals somewhere OUTSIDE this repo (and off the
+# public internet). Losing them means losing the photos: enc/ can only be
+# opened with the passphrase, and there is no recovery path.

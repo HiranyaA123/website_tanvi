@@ -9,58 +9,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
 <!-- ============================================================
-     PASSCODE GATE — shared snippet, identical on index.html,
-     photobooth.html and bucketlist.html. Runs before the page
-     paints, so the gate never flashes and the content never
-     shows through it.
+     PASSCODE GATE — one shared file, loaded on all three pages.
+     Synchronous on purpose: it sets the `unlocked` class before
+     the first paint, so the gate never flashes.
+
+     The photos are not on the server in the clear — only AES-GCM
+     ciphertext under enc/ is. gate.js derives the key from the
+     passphrase in the browser and decrypts them at view time.
+     See gate.js for the full picture.
      ============================================================ -->
-<script>
-/* The passcode itself is NEVER in the source — only its SHA-256 hash.
-
-   TO CHANGE THE PASSCODE:
-     1. Open the site, open the browser console, and paste this:
-
-          async function sha256(str) {
-            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-            return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
-          }
-          await sha256('newcode')
-
-     2. Replace PASS_HASH below with the hex string it prints.
-     3. Set PASS_LEN to the number of characters in the new code.
-     4. Repeat in all three pages — this block is identical in each.
-
-   Devices that remembered the OLD code relock themselves: what's stored in
-   localStorage IS the old hash, so it stops matching PASS_HASH. */
-const PASS_HASH = '120e90dfb21d132a40c6281f8c8f25331969559e200f589bfe8e775e333b5b3a';
-const PASS_LEN  = 4;              // characters in the code — the field submits itself at this length
-const GATE_KEY  = 'ldr_unlocked'; // localStorage key: remembers this device across visits
-
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
-}
-function gateUnlocked() {
-  try { return localStorage.getItem(GATE_KEY) === PASS_HASH; } catch (e) { return false; }
-}
-function gateRemember() {
-  try { localStorage.setItem(GATE_KEY, PASS_HASH); } catch (e) { /* private mode — unlock this visit only */ }
-  document.documentElement.classList.add('unlocked');
-}
-async function gateCheck(value) {
-  try { return (await sha256(String(value).trim())) === PASS_HASH; } catch (e) { return false; }
-}
-/* Wrong code: shake, flash coral, clear. No error text. */
-function gateShake(input) {
-  input.value = '';
-  input.classList.remove('shake');
-  void input.offsetWidth;                 // reflow, so the animation restarts on a repeat wrong code
-  input.classList.add('shake');
-  input.addEventListener('animationend', () => input.classList.remove('shake'), { once: true });
-  input.focus();
-}
-if (gateUnlocked()) document.documentElement.classList.add('unlocked');
-</script>
+<script src="gate.js"></script>
 
 <style>
   /* ============================================================
@@ -932,17 +890,19 @@ if (gateUnlocked()) document.documentElement.classList.add('unlocked');
     <div class="splash-heart">♡</div>
     <div class="splash-text">for you</div>
     <form class="splash-form" id="splash-form" autocomplete="off">
-      <input class="gate-input" id="splash-code" type="password" inputmode="numeric"
-             placeholder="our code" aria-label="our code" autocomplete="off" />
+      <input class="gate-input" id="splash-code" type="password"
+             placeholder="our words" aria-label="our words"
+             autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+             enterkeyhint="go" />
     </form>
     <div class="splash-sub">tap to enter</div>
   </div>
 </div>
 
-<!-- ===== AUDIO ===== -->
-<audio id="song" loop preload="auto">
-  <source src="audio/song.mp3" type="audio/mpeg" />
-</audio>
+<!-- ===== AUDIO =====
+     No src here: the song is encrypted like everything else, so it
+     only gets a (blob) source once the passphrase is in. -->
+<audio id="song" loop preload="none"></audio>
 
 <!-- ===== MUSIC TOGGLE ===== -->
 <button class="music-toggle" id="music-toggle" aria-label="Toggle music">♫</button>
@@ -1036,31 +996,47 @@ if (gateUnlocked()) document.documentElement.classList.add('unlocked');
   const form   = document.getElementById('splash-form');
   const input  = document.getElementById('splash-code');
   audio.volume = 0.5;
-  input.maxLength = PASS_LEN;
+
+  /* Everything below the gate is encrypted, so it can only be fetched once
+     there's a key. Runs on unlock and on a return visit that restored one. */
+  let contentStarted = false;
+  async function revealContent() {
+    if (contentStarted) return;
+    contentStarted = true;
+    LDRGate.hydrate();                    // timeline polaroids
+    loadPhotos();                         // gallery grid
+    try {
+      audio.src = await LDRGate.assetURL('audio/song.mp3');
+    } catch (e) { /* no song file — the rest of the page is unaffected */ }
+  }
 
   function startMusic() {
     audio.play().then(() => {
       toggle.classList.add('playing');
-    }).catch(() => { /* playback failed — still let her in */ });
+    }).catch(() => { /* autoplay refused — she can tap ♫ */ });
     splash.classList.add('hidden');
     toggle.classList.add('show');
   }
-  // Tap-to-enter only once this device is unlocked; while locked, the code is the way in.
-  splash.addEventListener('click', () => { if (gateUnlocked()) startMusic(); });
+  // Tap-to-enter only once this device is unlocked; while locked, the passphrase is the way in.
+  splash.addEventListener('click', () => { if (LDRGate.unlocked()) startMusic(); });
 
-  /* The code is checked on the same gesture that types it, so the browser still
-     counts it as a user interaction and the music is allowed to autoplay. */
+  /* Returning visitor: the stored key is verified against the canary before
+     this resolves, so a stale key falls back to the passphrase field. */
+  LDRGate.ready.then(ok => { if (ok) revealContent(); });
+
   async function tryCode() {
-    if (await gateCheck(input.value)) {
-      gateRemember();
+    if (!input.value) return;
+    input.disabled = true;                // PBKDF2 takes a moment — don't queue up submits
+    const ok = await LDRGate.unlock(input.value);
+    input.disabled = false;
+    if (ok) {
+      await revealContent();
       startMusic();
     } else {
-      gateShake(input);
+      LDRGate.shake(input);
     }
   }
   form.addEventListener('submit', e => { e.preventDefault(); tryCode(); });
-  // Numeric keypads have no return key, so submit as soon as the code is long enough.
-  input.addEventListener('input', () => { if (input.value.length >= PASS_LEN) tryCode(); });
 
   toggle.addEventListener('click', () => {
     if (audio.paused) {
@@ -1076,7 +1052,7 @@ if (gateUnlocked()) document.documentElement.classList.add('unlocked');
 /* ============================================================
    EDIT THIS — when you're getting back
    ============================================================ */
-const RETURN_DATE = new Date('2026-07-04T18:00:00+09:30'); // 4 July, Adelaide time (+09:30 winter)
+const RETURN_DATE = new Date('2026-08-20T18:00:00+09:30'); // 20 August, Adelaide time (+09:30 winter)
 const APART_SINCE = new Date('2026-03-26T00:00:00+10:30'); // 26 March, Adelaide time (+10:30 summer) — hours-apart counts up from here
 
 /* ============================================================
@@ -1181,9 +1157,12 @@ const EVENTS = [
     const div = document.createElement('div');
     div.className = 'event';
     const p = e.photo;
+    /* data-enc, not src: LDRGate.hydrate() fills these in after unlock.
+       No loading="lazy" — the bytes are already fetched and decrypted by the
+       time the src is set, so lazy only stops the image from ever painting. */
     const photoHtml = p ? `
       <div class="polaroid">
-        <img src="${p.src}" alt="" loading="lazy" />
+        <img data-enc="${p.src}" alt="" />
         ${p.caption ? `<div class="caption">${p.caption}</div>` : ''}
       </div>` : '';
     div.innerHTML = `
@@ -1199,46 +1178,25 @@ const EVENTS = [
 
 /* ============================================================
    PHOTO GALLERY
-   Auto-loads from your GitHub repo via the GitHub API.
-   Just drop photos (jpg/png/webp/gif, any names) into the
-   /gallery folder and commit — they'll appear automatically.
+   The file list comes from enc/manifest.json, written by
+   tools/encrypt-assets.mjs. It used to come from the GitHub API,
+   which meant the repo had to stay public and anyone could read
+   the folder listing — both of those are now gone.
 
-   1. Set GH_USER and GH_REPO to YOUR github username and repo.
-   2. Make sure the repo is PUBLIC (required for the API to work).
-   3. (Optional fallback) If you don't want to use GitHub, list
-      filenames manually in PHOTOS_MANUAL below.
+   To add photos: drop them in /gallery, re-run
+     node tools/encrypt-assets.mjs
+   and commit the regenerated enc/ folder.
    ============================================================ */
-const GH_USER = 'HiranyaA123';        // e.g. 'hiranya'
-const GH_REPO = 'website_tanvi';        // e.g. 'for-you'
-const GH_PATH = 'gallery'; // folder name inside the repo
-
-// Fallback if GH config is blank or the API call fails:
-const PHOTOS_MANUAL = [
-  // 'IMG_1234.jpg',
-  // 'random_name.png',
-];
-
 let GALLERY = [];
 let lbIndex = 0;
 
 async function loadPhotos() {
-  let photos = [];
-  if (GH_USER && GH_REPO) {
-    try {
-      const r = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_PATH}`);
-      if (r.ok) {
-        const data = await r.json();
-        photos = data
-          .filter(f => f.type === 'file' && /\.(jpe?g|png|webp|gif)$/i.test(f.name))
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .map(f => `${GH_PATH}/${f.name}`);
-      }
-    } catch (e) { /* fall through to manual */ }
+  try {
+    const m = await LDRGate.manifest();
+    GALLERY = m.gallery || [];
+  } catch (e) {
+    GALLERY = [];
   }
-  if (photos.length === 0 && PHOTOS_MANUAL.length > 0) {
-    photos = PHOTOS_MANUAL.map(n => `${GH_PATH}/${n}`);
-  }
-  GALLERY = photos;
   renderGallery();
 }
 
@@ -1246,27 +1204,28 @@ function renderGallery() {
   const grid = document.getElementById('photos-grid');
   grid.innerHTML = '';
   if (GALLERY.length === 0) {
-    grid.innerHTML = `<p class="photos-empty">drop photos into the <code>/gallery</code> folder — they'll appear here.</p>`;
+    grid.innerHTML = `<p class="photos-empty">drop photos into <code>/gallery</code>, re-run <code>tools/encrypt-assets.mjs</code> — they'll appear here.</p>`;
     return;
   }
   GALLERY.forEach((src, i) => {
     const img = document.createElement('img');
-    img.src = src;
-    img.loading = 'lazy';
+    img.dataset.enc = src;              // decrypted by hydrate() below
     img.alt = '';
     img.style.animationDelay = (i * 0.04) + 's';
     img.addEventListener('click', () => openLightbox(i));
     grid.appendChild(img);
   });
+  LDRGate.hydrate(grid);
 }
 
-function openLightbox(i) {
+async function openLightbox(i) {
   lbIndex = i;
   const lb = document.getElementById('lightbox');
-  lb.querySelector('img').src = GALLERY[i];
   lb.querySelector('.lb-counter').textContent = `${i + 1} / ${GALLERY.length}`;
   lb.classList.add('show');
   document.body.style.overflow = 'hidden';
+  // Already decrypted for the grid, so assetURL returns from cache instantly.
+  try { lb.querySelector('img').src = await LDRGate.assetURL(GALLERY[i]); } catch (e) {}
 }
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('show');
@@ -1301,7 +1260,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft')  prevPhoto();
 });
 
-loadPhotos();
+/* loadPhotos() is not called here — nothing can be fetched until there's
+   a key, so revealContent() in the splash block triggers it after unlock. */
 
 /* ============================================================
    STAR MAP — the real night sky over 4 Foulis Ct, Wynn Vale SA
